@@ -21,6 +21,7 @@ import {
   type YouTubeVideo,
 } from "@/lib/bot/youtube";
 import { DEFAULT_MODEL, generateJson, isAvailable } from "@/lib/bot/ollama";
+import { matchKnownEvent, referenceBlock } from "@/lib/bot/known-events";
 import {
   classifyPrompt,
   draftAccountPrompt,
@@ -221,12 +222,19 @@ export async function draftCandidate(
     };
   }
 
+  // Look the material up in the archive's reference before drafting. A
+  // documentary about Roswell that never says "1947" should not produce an
+  // account claiming the date is unknown, but the date must arrive as a
+  // sourced fact rather than as something the model remembered.
+  const match = matchKnownEvent(candidate.title, candidate.description);
+
   const source: SourceMaterial = {
     sourceName: `YouTube: ${candidate.channel}`,
     sourceUrl: candidate.watch_url,
     knownTitle: candidate.title,
     knownDate: candidate.published_at,
     text: `Video title: ${candidate.title}\n\nUploader description:\n${candidate.description}`,
+    reference: match ? referenceBlock(match) : undefined,
   };
 
   try {
@@ -238,7 +246,13 @@ export async function draftCandidate(
     // Checked before classifying: a draft that breaks a hard rule needs
     // regenerating anyway, and classifying then translating it would spend
     // three more model calls producing output nobody can use.
-    const firstCheck = validateAccount(account, { sourceText: source.text });
+    // The grounding check must see the reference too, or the very facts we
+    // deliberately supplied would be flagged as invented.
+    const groundingText = [source.text, source.reference]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const firstCheck = validateAccount(account, { sourceText: groundingText });
 
     let classification: ClassificationResult | null = null;
     let validation = firstCheck;
@@ -252,7 +266,7 @@ export async function draftCandidate(
       );
 
       validation = validateAccount(account, {
-        sourceText: source.text,
+        sourceText: groundingText,
         classification: classification.classification,
       });
 
@@ -293,6 +307,16 @@ export async function draftCandidate(
         },
         generated_at: new Date().toISOString(),
         model,
+        matched_event: match
+          ? {
+              id: match.event.id,
+              name: match.event.name,
+              matched_on: match.matchedOn,
+              authority: match.event.authority,
+              canonical_slug: match.event.canonical_slug,
+              documents: match.event.documents ?? [],
+            }
+          : undefined,
       },
     });
 
@@ -350,9 +374,17 @@ export async function approveCandidate(
   const classification = String(formData.get("classification") ?? "unverified");
   const classificationReason = String(formData.get("classification_reason") ?? "");
 
-  // The rules apply to a human's edit too. Nothing bypasses the checks.
+  const matched = candidate.draft.matched_event;
+
+  // The rules apply to a human's edit too. Nothing bypasses the checks. The
+  // reference counts as source here as well, so an established date the
+  // reviewer kept is not flagged as unsupported.
   const check = validateAccount(edited, {
-    sourceText: `${candidate.title}\n${candidate.description}`,
+    sourceText: [
+      candidate.title,
+      candidate.description,
+      matched ? `${matched.name} ${matched.authority}` : "",
+    ].join("\n"),
     classification,
   });
 
@@ -379,58 +411,114 @@ export async function approveCandidate(
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const slug = slugify(edited.headline) || `case-${Date.now()}`;
+  const mergeInto = String(formData.get("merge_into") ?? "").trim();
+
+  // A second video about Rendlesham belongs on the Rendlesham case as another
+  // angle, not in a rival entry. Merging keeps one strong case instead of two
+  // thin ones, which is also what the reader wants.
+  const slug = mergeInto || slugify(edited.headline) || `case-${Date.now()}`;
 
   try {
-    const { data: row, error } = await db
-      .from("cases")
-      .upsert(
-        {
-          title: edited.headline,
-          slug,
-          summary: edited.summary,
-          body_footage: edited.body_footage,
-          body_testimony: edited.body_testimony,
-          body_status: edited.body_status,
-          body_unknown: edited.body_unknown,
-          date_of_event: edited.date_of_event,
-          date_precision: edited.date_precision,
-          location_name: edited.location_name,
-          continent: edited.continent,
-          country: edited.country,
-          location_unknown: !edited.location_name && !edited.country,
-          classification,
-          classification_reason: classificationReason,
-          published: true,
-        },
-        { onConflict: "slug" },
-      )
-      .select("id")
-      .single();
+    let caseId: string;
 
-    if (error) return { error: `Supabase rejected it: ${error.message}` };
+    if (mergeInto) {
+      const { data: existing, error: findError } = await db
+        .from("cases")
+        .select("id")
+        .eq("slug", mergeInto)
+        .maybeSingle();
 
-    const caseId = row!.id as string;
+      if (findError) return { error: `Supabase rejected it: ${findError.message}` };
+      if (!existing) {
+        return {
+          error: `No case with the slug "${mergeInto}" exists to merge into.`,
+        };
+      }
+      caseId = existing.id as string;
+    } else {
+      const { data: row, error } = await db
+        .from("cases")
+        .upsert(
+          {
+            title: edited.headline,
+            slug,
+            summary: edited.summary,
+            body_footage: edited.body_footage,
+            body_testimony: edited.body_testimony,
+            body_status: edited.body_status,
+            body_unknown: edited.body_unknown,
+            date_of_event: edited.date_of_event,
+            date_precision: edited.date_precision,
+            location_name: edited.location_name,
+            continent: edited.continent,
+            country: edited.country,
+            location_unknown: !edited.location_name && !edited.country,
+            classification,
+            classification_reason: classificationReason,
+            published: true,
+          },
+          { onConflict: "slug" },
+        )
+        .select("id")
+        .single();
 
-    await db.from("media").delete().eq("case_id", caseId);
+      if (error) return { error: `Supabase rejected it: ${error.message}` };
+      caseId = row!.id as string;
+    }
+
+    // Existing media is left alone when merging: this clip is an extra angle,
+    // and the case's primary footage should not be displaced by it.
+    const { count: mediaCount } = await db
+      .from("media")
+      .select("id", { count: "exact", head: true })
+      .eq("case_id", caseId);
+
     await db.from("media").insert({
       case_id: caseId,
       type: candidate.media_type,
       embed_url: candidate.embed_url,
       thumbnail_url: candidate.thumbnail_url,
       caption: candidate.title,
-      role: "primary",
-      sort_order: 0,
+      role: mediaCount ? "additional" : "primary",
+      sort_order: mediaCount ?? 0,
     });
 
-    await db.from("sources").delete().eq("case_id", caseId);
+    const { count: sourceCount } = await db
+      .from("sources")
+      .select("id", { count: "exact", head: true })
+      .eq("case_id", caseId);
+
     await db.from("sources").insert({
       case_id: caseId,
       source_name: `YouTube: ${candidate.channel}`,
       source_url: candidate.watch_url,
       source_type: "witness",
-      sort_order: 0,
+      sort_order: sourceCount ?? 0,
     });
+
+    // A major event should carry its official archives from the first draft
+    // rather than waiting for someone to remember them.
+    if (matched?.documents.length) {
+      const { data: already } = await db
+        .from("documents")
+        .select("source_url")
+        .eq("case_id", caseId);
+
+      const have = new Set((already ?? []).map((d) => String(d.source_url)));
+      const missing = matched.documents.filter((d) => !have.has(d.url));
+
+      if (missing.length) {
+        await db.from("documents").insert(
+          missing.map((d, i) => ({
+            case_id: caseId,
+            title: d.title,
+            source_url: d.url,
+            source_note: `Primary archive for ${matched.name}.`,
+            sort_order: have.size + i,
+          })),
+        );
+      }
+    }
 
     // Translations only if every section survived the check.
     for (const [lang, t] of Object.entries(candidate.draft.translations)) {

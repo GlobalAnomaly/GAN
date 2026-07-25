@@ -26,6 +26,19 @@ export interface DraftRecord {
   validation: { ok: boolean; errors: Finding[]; warnings: Finding[] };
   generated_at: string;
   model: string;
+  /**
+   * The known event this material was matched to, if any. Recorded so the
+   * reviewer can see which established facts were fed to the model and reject
+   * the match if it is wrong, rather than the enrichment happening invisibly.
+   */
+  matched_event?: {
+    id: string;
+    name: string;
+    matched_on: string;
+    authority: string;
+    canonical_slug?: string;
+    documents: { title: string; url: string }[];
+  };
 }
 
 export interface Candidate {

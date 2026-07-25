@@ -23,6 +23,7 @@ export const LANG_NAMES: Record<Lang, string> = {
 const ABSOLUTE_RULES = `Absolute rules:
 - Include only (a) what the evidence observably shows and (b) what named or described people claim, always attributed. Never state a UFO claim as fact in your own voice.
 - Never invent details not present in the source: object shape, material, size, altitude, time, witness count, or location. If a detail is absent, place it under "what remains unknown".
+- Where an ESTABLISHED FACTS block is provided, treat those facts as part of the source. They are verified, so use them: do not write that a date or place is unknown when the block states it. Everything outside the source material and that block is still unknown, and you must never fill a gap from your own knowledge.
 - Quote only short, load-bearing phrases that carry a fact or specific; attribute every quote. Cut anything kept for drama.
 - Write original prose. Do not copy or closely paraphrase the wording of any source article. State facts in your own words.
 - Show credibility through specifics (credentials, instrument data, corroboration); never assert it with adjectives.
@@ -38,6 +39,13 @@ export interface SourceMaterial {
   knownTitle?: string;
   knownDate?: string;
   knownLocation?: string;
+  /**
+   * Verified facts about a well-documented event, from the archive's own
+   * reference. Present only when the material was confidently matched to a
+   * known event. This is how the bot knows Roswell happened in 1947 without
+   * that date coming out of the model's memory.
+   */
+  reference?: string;
 }
 
 function sourceBlock(source: SourceMaterial): string {
@@ -53,7 +61,13 @@ function sourceBlock(source: SourceMaterial): string {
 ${known ? `${known}\n` : ""}
 SOURCE MATERIAL BEGINS
 ${source.text}
-SOURCE MATERIAL ENDS`;
+SOURCE MATERIAL ENDS${
+    source.reference
+      ? `
+
+${source.reference}`
+      : ""
+  }`;
 }
 
 export interface DraftAccount {

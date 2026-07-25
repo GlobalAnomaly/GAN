@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, BookMarked, Info, Loader2 } from "lucide-react";
 import {
   approveCandidate,
   dismissCandidate,
@@ -185,6 +185,59 @@ export function DraftPanel({
         {draft && (
           <form action={approveAction} className="mt-3 space-y-5">
             <input type="hidden" name="id" value={candidate.id} />
+
+            {draft.matched_event && (
+              <div className="rounded-xl border border-border bg-proposed/20 p-4">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <BookMarked className="size-4" aria-hidden />
+                  Matched to a known event: {draft.matched_event.name}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Established facts about this event were given to the model
+                  alongside the video, so the date and place come from the
+                  archive rather than from the model&apos;s memory. Recorded on
+                  the authority of {draft.matched_event.authority}.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Matched because the text contains &ldquo;
+                  {draft.matched_event.matched_on}&rdquo;. If that is a
+                  coincidence and this is a different event, fix the fields
+                  below before publishing.
+                </p>
+
+                {draft.matched_event.documents.length > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Official archives will be attached:{" "}
+                    {draft.matched_event.documents
+                      .map((d) => d.title)
+                      .join(", ")}
+                    .
+                  </p>
+                )}
+
+                {draft.matched_event.canonical_slug && (
+                  <label className="mt-3 flex gap-2 rounded-md bg-background/60 p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      name="merge_into"
+                      value={draft.matched_event.canonical_slug}
+                      defaultChecked
+                      className="mt-0.5 size-4 shrink-0"
+                    />
+                    <span>
+                      Add this to the existing case instead of making a new one.
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        We already cover this event. Merging adds the video as
+                        another angle on{" "}
+                        <code>{draft.matched_event.canonical_slug}</code>, which
+                        makes one strong case rather than two competing ones.
+                        Your edits below are ignored when merging.
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
 
             {flags && flags.errors.length > 0 && (
               <div className="rounded-xl border border-border bg-debunked/20 p-4">
