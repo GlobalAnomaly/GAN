@@ -1,0 +1,168 @@
+/**
+ * Domain types, mirroring supabase/schema.sql.
+ *
+ * These names match the database columns exactly so that swapping the seed
+ * data for a real Supabase query is a change of source, not a change of shape.
+ */
+
+export type Classification =
+  | "acknowledged"
+  | "unverified"
+  | "likely_explained"
+  | "debunked";
+
+export type Continent =
+  | "north_america"
+  | "south_america"
+  | "africa"
+  | "europe"
+  | "asia"
+  | "oceania"
+  | "unknown";
+
+export type MediaType = "youtube" | "short" | "tiktok" | "gov_file" | "image";
+export type MediaRole = "primary" | "additional";
+export type SourceType = "govt" | "news" | "witness" | "research";
+
+export type ScienceTopic =
+  | "exoplanets"
+  | "search_for_life"
+  | "astrobiology"
+  | "interstellar_objects"
+  | "space_signals"
+  | "missions_telescopes"
+  | "other";
+
+export type ScienceStatus =
+  | "candidate"
+  | "proposed"
+  | "confirmed"
+  | "disputed"
+  | "superseded";
+
+/** How precisely the event date is actually known. */
+export type DatePrecision = "day" | "month" | "year" | "unknown";
+
+export interface CaseMedia {
+  id: string;
+  type: MediaType;
+  embed_url: string;
+  thumbnail_url?: string | null;
+  caption?: string | null;
+  role: MediaRole;
+  sort_order: number;
+}
+
+export interface CaseDocument {
+  id: string;
+  title: string;
+  source_url: string;
+  source_note?: string | null;
+}
+
+export interface CaseSource {
+  id: string;
+  source_name: string;
+  source_url?: string | null;
+  source_type: SourceType;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+/**
+ * The body is four named parts rather than one blob. That is deliberate:
+ * "what remains unknown" is a required section of every account, and a
+ * separate field makes an empty one visible instead of invisible.
+ */
+export interface CaseRecord {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+
+  body_footage: string;
+  body_testimony: string;
+  body_status: string;
+  body_unknown: string;
+
+  date_of_event: string | null;
+  date_precision: DatePrecision;
+  location_name: string | null;
+  continent: Continent;
+  country: string | null;
+  location_unknown: boolean;
+
+  classification: Classification;
+  classification_reason: string;
+
+  view_count: number;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+
+  media: CaseMedia[];
+  documents: CaseDocument[];
+  sources: CaseSource[];
+  tags: Tag[];
+}
+
+export interface ScienceImage {
+  id: string;
+  image_url: string;
+  credit: string;
+  caption?: string | null;
+}
+
+export interface ScienceSource {
+  id: string;
+  name: string;
+  url?: string | null;
+}
+
+export interface ScienceRecord {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  topic: ScienceTopic;
+  status: ScienceStatus;
+  institutions: string[];
+
+  body_found: string;
+  body_how: string;
+  body_why: string;
+  /** The anti-hype slot. Never optional in practice. */
+  body_caveat: string;
+
+  date: string | null;
+  view_count: number;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+
+  images: ScienceImage[];
+  sources: ScienceSource[];
+}
+
+/** A card is the shared shape the home and browse grids render. */
+export interface CaseSummary
+  extends Pick<
+    CaseRecord,
+    | "id"
+    | "title"
+    | "slug"
+    | "summary"
+    | "classification"
+    | "continent"
+    | "country"
+    | "location_name"
+    | "date_of_event"
+    | "date_precision"
+    | "view_count"
+  > {
+  primary_media: CaseMedia | null;
+}
