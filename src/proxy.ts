@@ -8,8 +8,11 @@ import { ADMIN_COOKIE, isValidSession } from "@/lib/admin/auth";
  * closed by default: if ADMIN_PASSWORD is unset the panel is unreachable
  * rather than open. Failing closed matters more than convenience here, because
  * the failure mode of the opposite choice is a public write endpoint.
+ *
+ * Named `proxy`, in `src/proxy.ts`. Next 16 deprecated the `middleware` file
+ * convention and renamed it to `proxy`; the behaviour is unchanged.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // The login screen itself has to stay reachable.

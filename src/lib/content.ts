@@ -2,9 +2,14 @@
  * The content repository, and the only module pages read data through.
  *
  * It dispatches to Supabase when credentials are present and to the
- * hand-entered seed when they are not, so the site works before the database
- * exists, works after, and degrades to something readable rather than a blank
- * page if a variable goes missing in production.
+ * hand-entered seed when they are not. Crucially it also falls back to the
+ * seed when a Supabase query *fails*, not just when it is unconfigured.
+ *
+ * That second case is the one that bites: the moment the keys are pasted in,
+ * the site switches to a database whose schema may not have been created yet.
+ * Without a fallback every page 500s and the whole site looks broken, when the
+ * real state is "half configured". A readable site plus a loud server warning
+ * is a far better failure than a stack trace in the browser.
  *
  * Pages must keep importing from here and never from `content-seed`,
  * `content-supabase`, or `src/data` directly.
@@ -20,25 +25,82 @@ export type {
   ScienceFilters,
 } from "@/lib/content-types";
 
+/** One warning per failing function, so a broken schema does not spam the log. */
+const warned = new Set<string>();
+
+function warnOnce(name: string, error: unknown) {
+  if (warned.has(name)) return;
+  warned.add(name);
+
+  const message = error instanceof Error ? error.message : String(error);
+  const missingTable = /schema cache|does not exist|relation .* does not/i.test(
+    message,
+  );
+
+  console.warn(
+    `\n[content] Supabase query "${name}" failed, serving seed content instead.` +
+      `\n[content] ${message}` +
+      (missingTable
+        ? "\n[content] The tables do not exist yet. Open the Supabase SQL editor" +
+          "\n[content] and run supabase/schema.sql once.\n"
+        : "\n"),
+  );
+}
+
 /**
- * Both modules export the same function names with the same signatures, so
- * this picks one and the rest of the file just re-exports from it. TypeScript
- * checks the two really do match: if one drifts, this assignment stops
- * compiling.
+ * Wraps a database call so a failure degrades to the seed rather than to a
+ * 500. Typed so the two implementations must keep identical signatures.
  */
-const source: typeof seed = isSupabaseConfigured ? remote : seed;
+function withFallback<A extends unknown[], R>(
+  name: string,
+  remoteFn: (...args: A) => Promise<R>,
+  seedFn: (...args: A) => Promise<R>,
+): (...args: A) => Promise<R> {
+  if (!isSupabaseConfigured) return seedFn;
 
-export const listCases = source.listCases;
-export const getCaseBySlug = source.getCaseBySlug;
-export const getAllCaseSlugs = source.getAllCaseSlugs;
-export const getRelatedCases = source.getRelatedCases;
-export const getLatestCases = source.getLatestCases;
-export const getAcknowledgedCases = source.getAcknowledgedCases;
-export const getRotatingCases = source.getRotatingCases;
-export const searchCases = source.searchCases;
-export const getArchiveCounts = source.getArchiveCounts;
+  return async (...args: A): Promise<R> => {
+    try {
+      return await remoteFn(...args);
+    } catch (error) {
+      warnOnce(name, error);
+      return seedFn(...args);
+    }
+  };
+}
 
-export const listScience = source.listScience;
-export const getScienceBySlug = source.getScienceBySlug;
-export const getAllScienceSlugs = source.getAllScienceSlugs;
-export const searchScience = source.searchScience;
+export const listCases = withFallback("listCases", remote.listCases, seed.listCases);
+export const getCaseBySlug = withFallback("getCaseBySlug", remote.getCaseBySlug, seed.getCaseBySlug);
+export const getAllCaseSlugs = withFallback("getAllCaseSlugs", remote.getAllCaseSlugs, seed.getAllCaseSlugs);
+export const getRelatedCases = withFallback("getRelatedCases", remote.getRelatedCases, seed.getRelatedCases);
+export const getLatestCases = withFallback("getLatestCases", remote.getLatestCases, seed.getLatestCases);
+export const getAcknowledgedCases = withFallback("getAcknowledgedCases", remote.getAcknowledgedCases, seed.getAcknowledgedCases);
+export const getRotatingCases = withFallback("getRotatingCases", remote.getRotatingCases, seed.getRotatingCases);
+export const searchCases = withFallback("searchCases", remote.searchCases, seed.searchCases);
+export const getArchiveCounts = withFallback("getArchiveCounts", remote.getArchiveCounts, seed.getArchiveCounts);
+
+export const listScience = withFallback("listScience", remote.listScience, seed.listScience);
+export const getScienceBySlug = withFallback("getScienceBySlug", remote.getScienceBySlug, seed.getScienceBySlug);
+export const getAllScienceSlugs = withFallback("getAllScienceSlugs", remote.getAllScienceSlugs, seed.getAllScienceSlugs);
+export const searchScience = withFallback("searchScience", remote.searchScience, seed.searchScience);
+
+/**
+ * Whether the database is reachable *and* has the schema. Used by the admin
+ * dashboard to tell "not configured" apart from "configured but the SQL has
+ * not been run", which are very different problems with different fixes.
+ */
+export async function checkDatabase(): Promise<
+  { state: "unconfigured" } | { state: "ready"; cases: number } | { state: "no-schema"; message: string } | { state: "error"; message: string }
+> {
+  if (!isSupabaseConfigured) return { state: "unconfigured" };
+
+  try {
+    const counts = await remote.getArchiveCounts();
+    return { state: "ready", cases: counts.cases };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/schema cache|does not exist|relation .* does not/i.test(message)) {
+      return { state: "no-schema", message };
+    }
+    return { state: "error", message };
+  }
+}

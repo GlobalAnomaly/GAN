@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, X } from "lucide-react";
 import { counts } from "@/lib/admin/store";
 import { isAvailable, listModels, DEFAULT_MODEL } from "@/lib/bot/ollama";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { checkDatabase } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
@@ -46,15 +46,32 @@ function Status({
 }
 
 export default async function AdminHome() {
-  const [inbox, ollamaUp, models] = await Promise.all([
+  const [inbox, ollamaUp, models, database] = await Promise.all([
     counts(),
     isAvailable(),
     listModels(),
+    checkDatabase(),
   ]);
 
   const hasYouTube = Boolean(process.env.YOUTUBE_API_KEY);
-  const hasSupabase = isSupabaseConfigured;
   const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  // "Not configured" and "configured but the SQL was never run" look identical
+  // from outside and have completely different fixes, so they are reported
+  // separately rather than as one vague failure.
+  const databaseDetail =
+    database.state === "ready"
+      ? `Connected, with ${database.cases} case${database.cases === 1 ? "" : "s"} in the database.`
+      : database.state === "unconfigured"
+        ? "Not connected. The site is serving the hand-entered seed content."
+        : database.state === "no-schema"
+          ? "Keys work, but the tables do not exist yet. The site is serving seed content meanwhile."
+          : `Keys are set but the database returned an error. ${database.message}`;
+
+  const databaseFix =
+    database.state === "no-schema"
+      ? "Supabase dashboard > SQL Editor > paste supabase/schema.sql > Run"
+      : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY";
 
   return (
     <div>
@@ -145,14 +162,10 @@ export default async function AdminHome() {
           fix="Add YOUTUBE_API_KEY to .env.local, then restart"
         />
         <Status
-          ok={hasSupabase}
+          ok={database.state === "ready"}
           label="Supabase, for the public site"
-          detail={
-            hasSupabase
-              ? "Connected. The site reads from the database."
-              : "Not connected. The site is serving the hand-entered seed content."
-          }
-          fix="Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          detail={databaseDetail}
+          fix={databaseFix}
         />
         <Status
           ok={hasServiceRole}
