@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The house-style and grounding validator.
  *
  * A local 8B model will break the editorial rules sometimes. Catching that by
@@ -16,7 +16,7 @@
  * positives are expected and are cheap; a missed invention is not.
  */
 
-import type { DraftAccount } from "./prompts.ts";
+import type { DraftAccount } from "@/lib/bot/prompts";
 
 export interface Finding {
   severity: "error" | "warn";
@@ -116,8 +116,8 @@ const NUMBER_WORDS = [
 function normalize(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
+    .replace(/[â€˜â€™]/g, "'")
+    .replace(/[â€œâ€]/g, '"')
     .replace(/[^\p{L}\p{N}\s'"-]/gu, " ")
     .replace(/\s+/g, " ");
 }
@@ -141,7 +141,7 @@ function checkEmDashes(account: DraftAccount, findings: Finding[]) {
   for (const [field, value] of Object.entries(account)) {
     if (typeof value !== "string") continue;
     // En dash counts too: it is the same tell and reads as the same habit.
-    const match = /[—–]/.exec(value);
+    const match = /[â€”â€“]/.exec(value);
     if (match) {
       const at = match.index;
       findings.push({
@@ -441,7 +441,7 @@ export function validateTranslation(
 
   for (const [field, value] of Object.entries(translated)) {
     if (typeof value !== "string") continue;
-    if (/[—–]/.test(value)) {
+    if (/[â€”â€“]/.test(value)) {
       findings.push({
         severity: "error",
         rule: "no-em-dash",

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Draft a case account from source material, using the local model.
  *
  * Runs in stages, because an 8B model holds together far better doing one
@@ -25,7 +25,7 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
-import { DEFAULT_MODEL, generateJson, isAvailable, listModels } from "./lib/ollama.ts";
+import { DEFAULT_MODEL, generateJson, isAvailable, listModels } from "@/lib/bot/ollama";
 import {
   classifyPrompt,
   draftAccountPrompt,
@@ -36,12 +36,12 @@ import {
   type Lang,
   type SourceMaterial,
   type Translation,
-} from "./lib/prompts.ts";
+} from "@/lib/bot/prompts";
 import {
   formatFindings,
   validateAccount,
   validateTranslation,
-} from "./lib/validate-account.ts";
+} from "@/lib/bot/validate-account";
 
 interface Args {
   file?: string;

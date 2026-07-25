@@ -1,6 +1,0 @@
-{
-  "//": "Marks the bot folder as ESM. Node's nodenext resolution reads module type from the nearest package.json, and without this it treats these .ts files as CommonJS and rejects their imports. Not a separate package: there are no dependencies here and nothing is installed from it.",
-  "name": "gan-bot",
-  "private": true,
-  "type": "module"
-}

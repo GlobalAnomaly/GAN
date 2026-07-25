@@ -1,11 +1,11 @@
-/**
+﻿/**
  * The dedup logic is what stops the review inbox filling with the same clip
  * five times, so it gets tested. Run with: npm run bot:test
  */
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { embedUrlFor, normalizeUrl } from "./normalize-url.ts";
+import { embedUrlFor, normalizeUrl } from "@/lib/bot/normalize-url";
 
 test("every YouTube link shape collapses to one key", () => {
   const shapes = [

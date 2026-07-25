@@ -1,4 +1,4 @@
-/**
+﻿/**
  * YouTube Data API v3 client.
  *
  * This is how the archive gets video URLs at scale. Nothing here guesses a

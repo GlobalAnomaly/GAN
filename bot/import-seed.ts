@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Push the hand-entered seed content into Supabase.
  *
  * Idempotent: cases and science entries are matched on their slug, and child
@@ -14,8 +14,8 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { SEED_CASES } from "../src/data/cases.ts";
-import { SEED_SCIENCE } from "../src/data/science.ts";
+import { SEED_CASES } from "@/data/cases";
+import { SEED_SCIENCE } from "@/data/science";
 
 // Not --dry-run: npm treats that as its own flag and never passes it through.
 const dryRun = process.argv.includes("--dry");

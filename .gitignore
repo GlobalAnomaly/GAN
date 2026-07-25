@@ -42,3 +42,6 @@ next-env.d.ts
 
 # bot working files
 bot/.cache/
+
+# local admin inbox (runs on your PC, never deployed)
+.data/

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fetch video candidates from YouTube and write them to a review file.
  *
  * This is the step that answers "where do ten thousand video URLs come from".
@@ -22,9 +22,9 @@ import {
   resolveChannelId,
   searchVideos,
   type YouTubeVideo,
-} from "./lib/youtube.ts";
-import { normalizeUrl } from "./lib/normalize-url.ts";
-import { SeenLog } from "./lib/seen-log.ts";
+} from "@/lib/bot/youtube";
+import { normalizeUrl } from "@/lib/bot/normalize-url";
+import { SeenLog } from "@/lib/bot/seen-log";
 
 interface Args {
   channel?: string;
