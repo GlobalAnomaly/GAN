@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { AlertTriangle, BookMarked, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, BookMarked, Info, Loader2, RotateCcw } from "lucide-react";
 import {
   approveCandidate,
   dismissCandidate,
   draftCandidate,
+  redraftCandidate,
   type ApproveState,
   type DraftState,
 } from "@/app/admin/actions";
@@ -360,12 +361,29 @@ export function DraftPanel({
 
               <button
                 type="submit"
+                formAction={redraftCandidate}
+                formNoValidate
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2.5 text-sm transition-colors hover:bg-accent"
+              >
+                <RotateCcw className="size-3.5" aria-hidden />
+                Write it again
+              </button>
+
+              <button
+                type="submit"
                 formAction={dismissCandidate}
-                className="rounded-md border border-border px-4 py-2.5 text-sm transition-colors hover:bg-accent"
+                formNoValidate
+                className="rounded-md border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
               >
                 Dismiss
               </button>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              Writing it again throws this draft away and starts over, which is
+              what you want after the prompts change or to compare two models.
+              Your edits here are not kept.
+            </p>
 
             <p className="text-xs text-muted-foreground">
               Your edits are what gets published, not the model&apos;s original.

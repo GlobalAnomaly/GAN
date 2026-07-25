@@ -554,6 +554,24 @@ export async function approveCandidate(
   redirect(`/admin/inbox?published=${encodeURIComponent(slug)}`);
 }
 
+/**
+ * Throw a draft away and put the candidate back in the queue.
+ *
+ * Needed whenever the prompts change, the reference gains an event, or a
+ * different model is worth trying. Without it a stale draft is stuck, since
+ * the drafting form only appears when no draft exists.
+ */
+export async function redraftCandidate(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+
+  await updateCandidate(id, { status: "new", draft: undefined });
+
+  revalidatePath(`/admin/inbox/${id}`);
+  revalidatePath("/admin/inbox");
+  revalidatePath("/admin");
+  redirect(`/admin/inbox/${id}`);
+}
+
 export async function dismissCandidate(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   await removeCandidate(id, "dismissed");
