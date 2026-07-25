@@ -10,12 +10,21 @@
     "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "verbatimModuleSyntax": true,
+    // verbatimModuleSyntax is deliberately off. The importer reads the seed
+    // from ../src/data, and the app's package.json does not declare ESM, so
+    // that flag would reject those files as CommonJS. Their only imports are
+    // type-only and are erased before Node ever sees them.
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "types": ["node"],
+    // The seed modules import their types through the app's @/ alias. Those
+    // are type-only imports, so Node erases them and never has to resolve the
+    // alias at runtime; tsc still needs to be told where it points.
+    "paths": {
+      "@/*": ["../src/*"]
+    }
   },
   "include": ["**/*.ts"]
 }
