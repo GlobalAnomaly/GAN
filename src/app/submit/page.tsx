@@ -35,6 +35,12 @@ export default function SubmitPage() {
             In the meantime, email us with a link to the material and anything
             you know about where and when it was taken.
           </p>
+          <a
+            href={`mailto:${SITE.email}?subject=${encodeURIComponent("Case submission")}`}
+            className="mt-4 inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            {SITE.email}
+          </a>
         </div>
 
         <h2 className="mt-10 font-[family-name:var(--font-serif)] text-2xl">
@@ -78,7 +84,6 @@ export default function SubmitPage() {
           .
         </p>
 
-        <p className="sr-only">{SITE.name}</p>
       </div>
     </div>
   );

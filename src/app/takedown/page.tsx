@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE } from "@/lib/site";
 
 /**
  * DRAFT. Describes an honest process for a site that embeds rather than hosts.
@@ -41,6 +42,17 @@ export default function TakedownPage() {
         <p>
           What we do publish is our own written account of a case, which is
           original prose rather than a copy of anyone&apos;s article.
+        </p>
+
+        <p className="mt-4">
+          Send takedown and rights requests to{" "}
+          <a
+            href={`mailto:${SITE.email}?subject=${encodeURIComponent("Takedown request")}`}
+            className="text-primary hover:underline"
+          >
+            {SITE.email}
+          </a>
+          .
         </p>
 
         <h2 className="mt-10 font-[family-name:var(--font-serif)] text-2xl">

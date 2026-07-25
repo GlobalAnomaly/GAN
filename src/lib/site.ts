@@ -12,6 +12,7 @@ export const SITE = {
   description:
     "A free, worldwide directory of UFO and UAP cases, from officially acknowledged government footage to unverified public clips, alongside plain-language coverage of the search for life beyond Earth.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  email: "gbanomaly@hotmail.com",
 } as const;
 
 export const NAV_LINKS = [

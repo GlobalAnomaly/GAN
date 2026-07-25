@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE } from "@/lib/site";
 
 /**
  * DRAFT. Written to describe the site as it actually is at launch: no
@@ -67,6 +68,14 @@ export default function PrivacyPage() {
         </h2>
         <p>
           We keep the message so we can act on it and answer you. Nothing more.
+          Our address is{" "}
+          <a
+            href={`mailto:${SITE.email}`}
+            className="text-primary hover:underline"
+          >
+            {SITE.email}
+          </a>
+          , and it is also where you send any request about your data.
         </p>
 
         <h2 className="mt-10 font-[family-name:var(--font-serif)] text-2xl">

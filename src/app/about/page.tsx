@@ -160,8 +160,14 @@ export default function AboutPage() {
         </p>
         <p>
           If you can show us that something here is inaccurate, or you have
-          footage, a document, or a detail we have missed, send it and we will
-          look at it properly.
+          footage, a document, or a detail we have missed, send it to{" "}
+          <a
+            href={`mailto:${SITE.email}`}
+            className="text-primary hover:underline"
+          >
+            {SITE.email}
+          </a>{" "}
+          and we will look at it properly.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">

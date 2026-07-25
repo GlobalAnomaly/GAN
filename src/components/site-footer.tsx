@@ -3,6 +3,7 @@ import { SITE } from "@/lib/site";
 
 const FOOTER_LINKS = [
   { href: "/about", label: "About and our standards" },
+  { href: "/submit", label: "Send us something" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/takedown", label: "Takedown requests" },
@@ -40,6 +41,15 @@ export function SiteFooter() {
         <p className="mt-8 text-xs text-muted-foreground">
           Video remains hosted by its original platform and is embedded here
           under each platform&apos;s player. Documents link to their source.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Contact us at{" "}
+          <a
+            href={`mailto:${SITE.email}`}
+            className="text-primary hover:underline"
+          >
+            {SITE.email}
+          </a>
         </p>
       </div>
     </footer>

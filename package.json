@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "bot:youtube": "node --experimental-strip-types --env-file-if-exists=.env.local bot/fetch-youtube.ts",
+    "bot:test": "node --experimental-strip-types --test bot/lib/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

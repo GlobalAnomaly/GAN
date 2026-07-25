@@ -1,0 +1,21 @@
+{
+  // The bot runs directly on Node via --experimental-strip-types, not through
+  // a bundler. Node resolves real files, so imports must carry the .ts
+  // extension, which the app's bundler-resolution config forbids. Hence a
+  // separate config, and "bot" excluded from the root tsconfig.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["esnext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}
