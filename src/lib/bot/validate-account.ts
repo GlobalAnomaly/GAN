@@ -95,6 +95,40 @@ const ATTRIBUTION_MARKERS = [
   "have said",
 ];
 
+/**
+ * Capitalised words that are not names.
+ *
+ * The grounding check looks for capitalised words absent from the source,
+ * because that is the shape an invented name takes. But English capitalises
+ * plenty of things that nobody invented: nationalities, months, weekdays,
+ * ranks used generically. Flagging "British pathologist" as a possibly
+ * fabricated person is noise, and noise is what makes a reviewer stop reading
+ * the warnings at all.
+ */
+const NON_NAME_CAPITALS = new Set([
+  // Nationalities, languages, regional adjectives
+  "british", "american", "english", "scottish", "welsh", "irish", "french",
+  "german", "italian", "spanish", "portuguese", "brazilian", "mexican",
+  "canadian", "australian", "russian", "soviet", "chinese", "japanese",
+  "korean", "indian", "iranian", "israeli", "egyptian", "turkish", "greek",
+  "dutch", "belgian", "swiss", "swedish", "norwegian", "danish", "finnish",
+  "polish", "chilean", "argentine", "argentinian", "peruvian", "colombian",
+  "zimbabwean", "african", "european", "asian", "latin", "nordic", "arab",
+  "western", "eastern", "northern", "southern", "central",
+  // Months and weekdays
+  "january", "february", "march", "april", "may", "june", "july", "august",
+  "september", "october", "november", "december",
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  // Ranks and roles that appear capitalised mid-sentence
+  "major", "colonel", "captain", "lieutenant", "commander", "sergeant",
+  "general", "admiral", "officer", "professor", "doctor", "sir", "dame",
+  "lord", "president", "minister", "secretary", "chief", "deputy",
+  // Generic capitalised nouns that recur in this material
+  "air", "force", "army", "navy", "government", "ministry", "department",
+  "state", "national", "federal", "royal", "united", "states", "kingdom",
+  "earth", "moon", "sun", "god", "christmas", "world", "war",
+]);
+
 /** Words that start a sentence and so tell us nothing about proper nouns. */
 const SENTENCE_STARTERS = new Set([
   "the", "a", "an", "in", "on", "at", "no", "not", "there", "this", "that",
@@ -332,7 +366,18 @@ function checkGrounding(
   for (const m of draft.matchAll(/(?<![.!?]\s)(?<!^)\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})*)\b/gm)) {
     const candidate = m[1];
     if (SENTENCE_STARTERS.has(candidate.toLowerCase())) continue;
-    properNouns.add(candidate);
+
+    // Strip the parts that are not names ("Major Jesse Marcel" is really a
+    // claim about Jesse Marcel), and drop the candidate entirely if nothing
+    // name-like is left. This is what stops "British pathologist" reading as
+    // an invented person.
+    const nameParts = candidate
+      .split(/\s+/)
+      .filter((w) => !NON_NAME_CAPITALS.has(w.toLowerCase()));
+
+    if (nameParts.length === 0) continue;
+
+    properNouns.add(nameParts.join(" "));
   }
 
   for (const noun of properNouns) {

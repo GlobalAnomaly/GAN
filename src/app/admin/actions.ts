@@ -26,6 +26,10 @@ import {
   classifyPrompt,
   draftAccountPrompt,
   translatePrompt,
+  LANG_NAMES,
+  CLASSIFICATION_SCHEMA,
+  DRAFT_SCHEMA,
+  TRANSLATION_SCHEMA,
   type ClassificationResult,
   type DraftAccount,
   type Lang,
@@ -211,6 +215,7 @@ export async function draftCandidate(
   const id = String(formData.get("id") ?? "");
   const model = String(formData.get("model") ?? DEFAULT_MODEL);
   const translate = formData.get("translate") === "on";
+  const transcript = String(formData.get("transcript") ?? "").trim();
 
   const candidate = await getCandidate(id);
   if (!candidate) return { error: "That candidate is no longer in the inbox." };
@@ -226,21 +231,33 @@ export async function draftCandidate(
   // documentary about Roswell that never says "1947" should not produce an
   // account claiming the date is unknown, but the date must arrive as a
   // sourced fact rather than as something the model remembered.
-  const match = matchKnownEvent(candidate.title, candidate.description);
+  const match = matchKnownEvent(
+    candidate.title,
+    candidate.description,
+    transcript,
+  );
 
   const source: SourceMaterial = {
     sourceName: `YouTube: ${candidate.channel}`,
     sourceUrl: candidate.watch_url,
     knownTitle: candidate.title,
     knownDate: candidate.published_at,
-    text: `Video title: ${candidate.title}\n\nUploader description:\n${candidate.description}`,
+    text: [
+      `Video title: ${candidate.title}`,
+      ``,
+      `Uploader description:`,
+      candidate.description || "(none)",
+      // A transcript changes the account completely: names and dates spoken
+      // aloud stop being unsupported guesses and become quotable material.
+      transcript ? `\nTranscript:\n${transcript}` : "",
+    ].join("\n"),
     reference: match ? referenceBlock(match) : undefined,
   };
 
   try {
     const account = await generateJson<DraftAccount>(
       draftAccountPrompt(source),
-      { model, temperature: 0.2 },
+      { model, temperature: 0.2, schema: DRAFT_SCHEMA },
     );
 
     // Checked before classifying: a draft that breaks a hard rule needs
@@ -262,7 +279,7 @@ export async function draftCandidate(
     if (firstCheck.ok) {
       classification = await generateJson<ClassificationResult>(
         classifyPrompt(account, source),
-        { model, temperature: 0.1 },
+        { model, temperature: 0.1, schema: CLASSIFICATION_SCHEMA },
       );
 
       validation = validateAccount(account, {
@@ -274,16 +291,36 @@ export async function draftCandidate(
         for (const lang of LANGS) {
           const t = await generateJson<Translation>(
             translatePrompt(account, classification.classification_reason, lang),
-            { model, temperature: 0.2 },
+            { model, temperature: 0.2, schema: TRANSLATION_SCHEMA },
           );
-          translations[lang] = t;
 
           const check = validateTranslation(
             account,
             t as unknown as Record<string, string>,
             lang,
           );
-          extraFindings.push(...check.errors, ...check.warnings);
+
+          // A translation that dropped a section or carries an em dash is not
+          // publishable, and keeping it would let a broken version reach the
+          // site alongside a sound English account. It is discarded and
+          // reported instead, so the English can still go out.
+          if (check.errors.length === 0) {
+            translations[lang] = t;
+            extraFindings.push(...check.warnings);
+          } else {
+            // Reported as warnings, not errors: the translation is already
+            // gone, so it cannot block an English account that is itself
+            // sound. Blocking here would mean one bad French paragraph
+            // holding up a case that is otherwise ready.
+            extraFindings.push(
+              ...check.errors.map((f) => ({
+                ...f,
+                severity: "warn" as const,
+                message: `${LANG_NAMES[lang]} translation was discarded: ${f.message}`,
+              })),
+              ...check.warnings,
+            );
+          }
         }
       }
     }
@@ -295,15 +332,12 @@ export async function draftCandidate(
         classification,
         translations,
         validation: {
-          ok: validation.ok && !extraFindings.some((f) => f.severity === "error"),
-          errors: [
-            ...validation.errors,
-            ...extraFindings.filter((f) => f.severity === "error"),
-          ],
-          warnings: [
-            ...validation.warnings,
-            ...extraFindings.filter((f) => f.severity === "warn"),
-          ],
+          // Reflects the English account only. Broken translations are
+          // discarded above rather than blocking, so nothing here is fatal
+          // that the reviewer cannot see and fix in the fields below.
+          ok: validation.ok,
+          errors: validation.errors,
+          warnings: [...validation.warnings, ...extraFindings],
         },
         generated_at: new Date().toISOString(),
         model,

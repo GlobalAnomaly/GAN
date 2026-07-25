@@ -11,6 +11,8 @@
  * prompt is the first thing a small model forgets.
  */
 
+import { objectSchema } from "@/lib/bot/ollama";
+
 export type Lang = "fr" | "pt" | "es";
 
 export const LANG_NAMES: Record<Lang, string> = {
@@ -159,6 +161,41 @@ export interface Translation {
   body_status: string;
   body_unknown: string;
 }
+
+/**
+ * Schemas handed to Ollama so the shape is enforced during generation rather
+ * than hoped for afterwards. Every key is required, which is what stops a
+ * translation quietly arriving without its "what remains unknown" section.
+ */
+const str = { type: "string" } as const;
+
+export const DRAFT_SCHEMA = objectSchema({
+  headline: str,
+  summary: str,
+  body_footage: str,
+  body_testimony: str,
+  body_status: str,
+  body_unknown: str,
+  location_name: str,
+  country: str,
+  continent: str,
+  date_of_event: str,
+  date_precision: str,
+});
+
+export const CLASSIFICATION_SCHEMA = objectSchema({
+  classification: str,
+  classification_reason: str,
+});
+
+export const TRANSLATION_SCHEMA = objectSchema({
+  title: str,
+  summary: str,
+  body_footage: str,
+  body_testimony: str,
+  body_status: str,
+  body_unknown: str,
+});
 
 export function translatePrompt(
   account: DraftAccount,

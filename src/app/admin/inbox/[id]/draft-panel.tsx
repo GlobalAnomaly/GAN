@@ -69,6 +69,7 @@ export function DraftPanel({
 
   const draft = candidate.draft;
   const flags = draft?.validation;
+  const blocked = (flags?.errors.length ?? 0) > 0;
 
   return (
     <div className="mt-8 grid gap-8 lg:grid-cols-2">
@@ -152,6 +153,25 @@ export function DraftPanel({
                 Smaller models invent more detail. 8B is the smallest that holds
                 the rules reliably.
               </p>
+            </div>
+
+            <div>
+              <label htmlFor="transcript" className="mb-1.5 block text-sm">
+                Transcript or extra source text (optional)
+              </label>
+              <p className="mb-1.5 text-xs text-muted-foreground">
+                This is the single biggest thing you can do for quality. An
+                uploader&apos;s description is thin, so names and dates spoken
+                in the video get flagged as possibly invented. Paste the
+                transcript and they become sourced facts instead.
+              </p>
+              <textarea
+                id="transcript"
+                name="transcript"
+                rows={6}
+                placeholder="Paste a transcript, an article, or notes from an official document."
+                className="w-full rounded-md border border-border bg-card p-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40"
+              />
             </div>
 
             <label className="flex items-center gap-2 text-sm">
@@ -348,15 +368,27 @@ export function DraftPanel({
             )}
 
             <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+              {/* Blocked while a hard rule is broken. The server re-checks
+                  anyway, so this is the honest version of the same answer
+                  rather than a button that fails after you press it. */}
               <button
                 type="submit"
-                disabled={approving}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+                disabled={approving || blocked}
+                title={
+                  blocked
+                    ? "Fix the blocking problems above first, or write it again."
+                    : undefined
+                }
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {approving && (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 )}
-                {approving ? "Publishing" : "Approve and publish"}
+                {approving
+                  ? "Publishing"
+                  : blocked
+                    ? "Cannot publish yet"
+                    : "Approve and publish"}
               </button>
 
               <button
