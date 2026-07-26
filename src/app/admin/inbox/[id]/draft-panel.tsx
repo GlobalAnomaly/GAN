@@ -16,6 +16,26 @@ import {
   CLASSIFICATION_ORDER,
 } from "@/lib/labels";
 
+const LANG_LABELS: Record<string, string> = {
+  fr: "French",
+  pt: "Portuguese",
+  es: "Spanish",
+};
+
+/**
+ * The parts compared between English and a translation, in reading order.
+ * The key differs on the first row: the account calls it `headline`, the
+ * translation record calls it `title`.
+ */
+const SECTION_FIELDS = [
+  { en: "headline", tr: "title", label: "Headline" },
+  { en: "summary", tr: "summary", label: "Summary" },
+  { en: "body_footage", tr: "body_footage", label: "What it shows" },
+  { en: "body_testimony", tr: "body_testimony", label: "Testimony" },
+  { en: "body_status", tr: "body_status", label: "Status" },
+  { en: "body_unknown", tr: "body_unknown", label: "What remains unknown" },
+] as const;
+
 function Field({
   label,
   name,
@@ -360,6 +380,77 @@ export function DraftPanel({
               defaultValue={draft.account.body_unknown}
               hint="Never empty. If it looks empty, something has been smoothed over."
             />
+
+            {/* Translations, side by side with their English original.
+                Reviewing a translation you cannot read means checking that
+                nothing was dropped and that hedged words stayed hedged, which
+                only works if both versions are visible together. */}
+            {Object.keys(draft.translations).length > 0 && (
+              <div className="rounded-xl border border-border p-4">
+                <h3 className="font-[family-name:var(--font-serif)] text-lg">
+                  Translations
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  These publish with an auto-translated label. You do not need
+                  to be fluent to check them: compare the lengths, confirm
+                  nothing is missing, and look for hedging words surviving.
+                  &ldquo;Reported&rdquo; must not have become
+                  &ldquo;happened&rdquo;.
+                </p>
+
+                {(
+                  Object.entries(draft.translations) as unknown as [
+                    string,
+                    Record<string, string>,
+                  ][]
+                ).map(([lang, t]) => (
+                  <details key={lang} className="mt-3 rounded-md border border-border">
+                    <summary className="cursor-pointer px-3 py-2 text-sm">
+                      {LANG_LABELS[lang] ?? lang}
+                    </summary>
+
+                    <div className="space-y-4 border-t border-border p-3">
+                      {SECTION_FIELDS.map(({ en, tr, label }) => {
+                        const english = String(
+                          draft.account[en as keyof typeof draft.account] ?? "",
+                        );
+                        const translated = String(t[tr] ?? "");
+                        const ratio = english
+                          ? translated.length / english.length
+                          : 1;
+
+                        return (
+                          <div key={en}>
+                            <p className="mb-1 text-xs text-muted-foreground">
+                              {label}
+                              {english && (
+                                <span
+                                  className={
+                                    ratio < 0.5 || ratio > 1.8
+                                      ? "ml-2 text-debunked-foreground"
+                                      : "ml-2"
+                                  }
+                                >
+                                  {english.length} to {translated.length} chars
+                                </span>
+                              )}
+                            </p>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <p className="rounded bg-muted/50 p-2 text-xs leading-relaxed text-muted-foreground">
+                                {english || "(empty)"}
+                              </p>
+                              <p className="rounded bg-muted/50 p-2 text-xs leading-relaxed">
+                                {translated || "(missing)"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
 
             {approveState?.error && (
               <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
