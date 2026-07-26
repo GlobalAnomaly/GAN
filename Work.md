@@ -908,6 +908,58 @@ is a harness sampling cap, not a blocking failure.
 ids so `"12"+"345"` and `"123"+"45"` would have collided. Caught before it
 corrupted a measurement.
 
+### Clustering, and the drift guard
+
+`src/lib/ingest/cluster.ts`, 14 tests. Turns linked pairs into event clusters.
+
+**Grouping is transitive; matching is not.** If A links B and B links C, naive
+union-find groups all three even when A and C were never compared, or were
+compared and rejected. Chains walk: 60km hops merge reports 500km apart into one
+"event". At 98% pair precision this still happens, because a cluster of 30 records
+holds 435 pairs and only a few need to be chains.
+
+**Why it is the worst available failure.** A cluster is shown to readers as
+"independently reported in five archives". A drifted cluster is therefore a
+fabricated corroboration claim, invented by an algorithm and asserted in the
+site's own voice. Every other number on the page borrows credibility from that one.
+
+**The guard:** a merge that would stretch a cluster past `MAX_CLUSTER_DAYS = 3` or
+`MAX_CLUSTER_KM = 250` is refused, and the pair is demoted to a suggestion for a
+human. Both limits derive from the matcher rather than from taste: it already
+treats more than two days apart as no match, and its distance score floors at
+200km, so a wider cluster necessarily contains a pair the matcher itself would
+have refused. Pairs are consumed **strongest first**, so confident links shape a
+cluster before a marginal one can stretch it, and the weak link is the casualty.
+
+Two decisions the tests pin down:
+
+- **A cluster reports the earliest date a source actually named**, never an
+  average. Averaging 20 and 22 December gives the 21st, a day nobody reported,
+  which is inventing a fact.
+- **`source_count` counts publications, not records.** Five rows from one database
+  is not corroboration; three rows from three is. That distinction is the claim.
+
+### The Supabase loader
+
+`scripts/ingest/load-supabase.ts`. Ready, but **migration 002 must be applied by
+hand** in the Supabase SQL editor: `supabase-js` cannot run DDL and the project
+holds only REST keys, no Postgres connection string. The loader detects the
+missing schema and says exactly that rather than failing obscurely.
+
+It refuses two things by construction:
+
+- **It never sets `may_publish_facts` true.** That flag is what RLS reads to
+  decide public visibility, so it is the line between storing and publishing. A
+  loader able to grant itself publication rights would defeat the flag's purpose.
+  UFOCAT therefore loads invisible and stays so until CUFOS answers.
+- **It never writes narrative or witness names.** Neither has a column.
+
+**The real gate on a visible map is not this loader.** UFOCAT cannot be shown
+without permission, so loading it produces 300,000 invisible rows and no pins. The
+critical path is **GEIPAN's licence check**: 3,368 cases, coordinates already
+present, and if it is Licence Ouverte 2.0 as expected, that is the first dataset
+we can actually put on a map.
+
 ### Police FOI, worldwide
 
 Yield varies enormously because the regimes do. Two different jobs:
