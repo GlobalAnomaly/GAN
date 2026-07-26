@@ -25,6 +25,18 @@ interface Job {
   width: number;
   quality: number;
   note: string;
+  /**
+   * Deepen the dark tones while leaving the light ones alone.
+   *
+   * Needed for the light-theme backdrop: the artwork is near-white and so is
+   * the page it sits on, so nothing distinguishes them and lowering opacity
+   * only makes that worse. Its saucers, document cards and dishes are the only
+   * parts that can read at all, so those are pushed darker while the whites
+   * stay white and keep blending invisibly into the paper.
+   *
+   * Applied as out = slope * in + offset, anchored so white stays white.
+   */
+  deepenDarks?: number;
 }
 
 const JOBS: Job[] = [
@@ -47,8 +59,9 @@ const JOBS: Job[] = [
     from: "Bright theme back.jpg",
     to: "backdrop-light.webp",
     width: 1400,
-    quality: 62,
+    quality: 68,
     note: "light theme backdrop",
+    deepenDarks: 1.45,
   },
 ];
 
@@ -61,10 +74,19 @@ async function main() {
 
     const before = (await stat(from)).size;
 
-    const info = await sharp(from)
-      .resize({ width: job.width, withoutEnlargement: true })
-      .webp({ quality: job.quality })
-      .toFile(to);
+    let pipeline = sharp(from).resize({
+      width: job.width,
+      withoutEnlargement: true,
+    });
+
+    if (job.deepenDarks) {
+      // Anchoring the offset at 255 keeps pure white exactly where it is, so
+      // the page background stays clean and only the darker shapes gain weight.
+      const slope = job.deepenDarks;
+      pipeline = pipeline.linear(slope, 255 * (1 - slope));
+    }
+
+    const info = await pipeline.webp({ quality: job.quality }).toFile(to);
 
     const saved = Math.round((1 - info.size / before) * 100);
 

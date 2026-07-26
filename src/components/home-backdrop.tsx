@@ -16,10 +16,15 @@ export function HomeBackdrop() {
       aria-hidden
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
     >
-      {/* Light theme. Lower opacity than the dark one: the artwork is pale and
-          sits under dark ink, so it washes out contrast far more easily. */}
+      {/* Light theme. Runs higher than it first did, because lowering opacity
+          was the wrong lever entirely: the artwork is near-white and so is the
+          paper it sits on, so fading it just removed what little there was to
+          see. The file itself now has its dark tones deepened (see
+          scripts/optimize-images.ts), and those shapes are what shows. The
+          white areas still blend invisibly into the background, which is
+          exactly what should happen to them. */}
       <div
-        className="absolute inset-0 bg-cover bg-top bg-no-repeat opacity-[0.18] dark:hidden"
+        className="absolute inset-0 bg-cover bg-top bg-no-repeat opacity-55 dark:hidden"
         style={{
           backgroundImage: "url(/images/backdrop-light.webp)",
           maskImage:
