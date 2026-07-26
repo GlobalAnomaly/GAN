@@ -22,6 +22,7 @@ import {
 } from "@/lib/bot/youtube";
 import { DEFAULT_MODEL, generateJson, isAvailable } from "@/lib/bot/ollama";
 import { matchKnownEvent, referenceBlock } from "@/lib/bot/known-events";
+import { requestStop, startRun, type RunSource } from "@/lib/bot/runner";
 import {
   classifyPrompt,
   draftAccountPrompt,
@@ -604,6 +605,55 @@ export async function redraftCandidate(formData: FormData) {
   revalidatePath("/admin/inbox");
   revalidatePath("/admin");
   redirect(`/admin/inbox/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// The overnight run
+// ---------------------------------------------------------------------------
+
+export interface RunActionState {
+  error?: string;
+  message?: string;
+}
+
+export async function startRunAction(
+  _prev: RunActionState | null,
+  formData: FormData,
+): Promise<RunActionState> {
+  const raw = String(formData.get("sources") ?? "");
+
+  // One source per line. "@channel" is a channel, anything else is a search,
+  // which keeps the form to a single box rather than a builder UI.
+  const sources: RunSource[] = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => ({
+      type: line.startsWith("@") || line.startsWith("UC") ? "channel" : "search",
+      value: line,
+      max: Math.min(500, Math.max(1, Number(formData.get("per_source") ?? 50))),
+    }));
+
+  const result = await startRun({
+    sources,
+    since: String(formData.get("since") ?? "").trim() || undefined,
+    translate: formData.get("translate") === "on",
+    model: String(formData.get("model") ?? DEFAULT_MODEL),
+    maxDrafts: Math.min(
+      2000,
+      Math.max(1, Number(formData.get("max_drafts") ?? 200)),
+    ),
+  });
+
+  if (result.error) return { error: result.error };
+
+  revalidatePath("/admin/run");
+  return { message: "Running. You can close this page; it keeps going." };
+}
+
+export async function stopRunAction() {
+  await requestStop();
+  revalidatePath("/admin/run");
 }
 
 export async function dismissCandidate(formData: FormData) {

@@ -24,6 +24,12 @@ export default function AdminLayout({
           </Link>
           <nav className="flex gap-3 text-sm">
             <Link
+              href="/admin/run"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Run overnight
+            </Link>
+            <Link
               href="/admin/fetch"
               className="text-muted-foreground hover:text-foreground"
             >
