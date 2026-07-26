@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { CaseCardCell } from "@/components/case-card";
+import { HomeBackdrop } from "@/components/home-backdrop";
 import { ScienceCard } from "@/components/science-card";
 import { ScrollStrip } from "@/components/scroll-strip";
 import { SearchBox } from "@/components/search-box";
@@ -24,24 +26,50 @@ export default async function Home() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <section className="mx-auto max-w-2xl text-center">
-        <h1 className="font-[family-name:var(--font-serif)] text-4xl leading-tight sm:text-5xl">
-          A worldwide record of the unexplained
-        </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-          Sightings from the 1930s to today, and the science of whether anyone
-          is out there. Sourced, attributed, and honest about what nobody knows.
-        </p>
+      <HomeBackdrop />
 
-        <SearchBox className="mt-8" />
+      <section className="text-center">
+        {/* The wordmark lives in the artwork, so the heading below carries the
+            tagline rather than repeating the name. Priority because this is
+            the largest thing above the fold and would otherwise pop in late. */}
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-xl">
+          {/* Unoptimized on purpose. scripts/optimize-images.ts already sized
+              and compressed this to 37KB of WebP; putting it through the image
+              optimizer again re-encoded it to a 6.6KB JPEG at 640px for a
+              ~900px slot, which is both softer and a worse format. Serving the
+              file as-is is smaller than most of the variants it would generate
+              and always crisp, including on retina. */}
+          <Image
+            src="/images/hero.webp"
+            alt="Global Anomaly Network"
+            width={1800}
+            height={600}
+            priority
+            unoptimized
+            className="h-auto w-full"
+          />
+        </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          {counts.cases} {counts.cases === 1 ? "case" : "cases"} across{" "}
-          {counts.continents}{" "}
-          {counts.continents === 1 ? "continent" : "continents"} ·{" "}
-          {counts.science} science{" "}
-          {counts.science === 1 ? "entry" : "entries"}
-        </p>
+        <div className="mx-auto mt-8 max-w-2xl">
+          <h1 className="font-[family-name:var(--font-serif)] text-3xl leading-tight sm:text-4xl">
+            A worldwide record of the unexplained
+          </h1>
+          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+            Sightings from the 1930s to today, and the science of whether anyone
+            is out there. Sourced, attributed, and honest about what nobody
+            knows.
+          </p>
+
+          <SearchBox className="mt-8" />
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            {counts.cases} {counts.cases === 1 ? "case" : "cases"} across{" "}
+            {counts.continents}{" "}
+            {counts.continents === 1 ? "continent" : "continents"} ·{" "}
+            {counts.science} science{" "}
+            {counts.science === 1 ? "entry" : "entries"}
+          </p>
+        </div>
       </section>
 
       {acknowledged.length > 0 && (
