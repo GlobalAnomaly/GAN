@@ -750,6 +750,71 @@ archive silently:**
 16,999, France 10,864, Brazil 4,340, Argentina 4,284, Spain 3,128, Italy 2,731.
 The French and Iberian volume is real material behind the multilingual argument.
 
+### The matcher, measured
+
+`src/lib/ingest/match.ts` with 24 tests. Validated by
+`scripts/ingest/match-validate.ts` against UFOCAT's 35,109 hand-built
+multi-record cases: 91 million pairs compared, ~510s per run.
+
+**First guesses were wrong and the measurement caught it.** LINK 0.86 gave 72.2%
+precision, meaning one auto-merge in four disagreed with CUFOS. Against our own
+rule that a wrong merge destroys two events silently, unusable.
+
+**Measured, cross-publication pairs only:**
+
+| score | precision | pairs |
+|---|---|---|
+| >= 1.000 | **97.1%** | 93,001 |
+| >= 0.950 | 89.7% | 177,631 |
+| >= 0.900 | 80.7% | 253,380 |
+| >= 0.700 | 56.6% | 403,761 |
+| >= 0.650 | 49.0% | 488,998 (93.4% recall of reachable) |
+
+**Constants now `LINK = 0.97`, `SUGGEST = 0.65`.** Link buys 35% recall, which is
+fine: the other 65% are not lost, they go to review. Suggestions are context shown
+when someone opens a cluster, not a global to-do list, so a large pool is
+acceptable where 500,000 review items would not be.
+
+**Why cross-publication is the fair test, and why we do not tune to maximise
+agreement with UFOCAT.** Precision plateaued at 94.9% overall, and a plateau is
+usually a definition problem. Inspecting perfect-score disagreements
+(`scripts/ingest/match-inspect.ts`) found them dominated by *same-publication*
+pairs: `UFOReportCtr` with itself 716, `CanadUFOSurv` with itself 709, `BPratt2`
+with itself 307. Examples were identical date, identical coordinates, identical
+shape, consecutive URNs, different PRN. That is **UFOCAT's unit, which the
+codebook states is one witness via one source**: a mass sighting reported by forty
+people to NUFORC is forty cases describing one event. Ours is the event, which is
+what a map pin needs. Restricting to cross-publication pairs lifts precision to
+97.1%, and that is also exactly the link that carries the corroboration claim.
+
+**Some disagreements are UFOCAT's own errors.** Aveley 1974, a well-known UK case
+documented by Rosales, Webb, Spencer, Hall and *Flying Saucer Review*, splits
+across PRN `166684` and `106684`. Transposed digits orphaned a record from its own
+cluster. So 97.1% understates us further.
+
+**Blocking reaches 93.0% of true pairs** (267,229 of 287,460). The missing 7% is a
+blocking problem, not a scoring one, and no threshold recovers it. Worth revisiting
+before tuning scores further.
+
+**Design notes carried in the code:**
+
+- Date is a **gate**: no date agreement means no match, whatever else aligns.
+- Distance tolerance is deliberately generous to ~150km, because sources disagree
+  about where an event happened. UFOCAT places Mantell 1948 at `FORT KNOX`,
+  `FRANKFORT`, `FRANKLIN SW` and `F-51`, roughly 100km apart. A tight matcher
+  would miss the best-documented case in the database.
+- Shape is corroboration, never evidence. `Disc` is the commonest value, so
+  agreeing on it says almost nothing, and disagreeing is normal between witnesses
+  to one event.
+- Year-precision dates were stored as 1 January, so they must never read as an
+  exact same-day match. Tested.
+- Name similarity substitutes for coordinates only at >= 0.8, because
+  `springfield`/`springville` scores 0.5 while a transposition scores 0.67. The
+  margin is narrow, so coordinates decide whenever we have them.
+- **Known flaw:** the score saturates at exactly 1.0, so 93,001 pairs pin at the
+  top and discrimination is lost precisely where it matters most. Worth
+  reformulating to asymptote instead.
+
 ### Police FOI, worldwide
 
 Yield varies enormously because the regimes do. Two different jobs:

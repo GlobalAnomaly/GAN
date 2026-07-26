@@ -137,11 +137,41 @@ create table if not exists reports (
   duration_raw  text,
   observers     integer,
 
+  -- NOTE THE SECOND ABSENCE: no witness names.
+  --
+  -- UFOCAT carries them on 31% of records, and names in already-published
+  -- sources are not secret. But bulk-republishing roughly a hundred thousand
+  -- names of private individuals is a different act from a book mentioning one,
+  -- and for living people in the EU it needs a lawful basis we do not have.
+  -- Naming a pilot or an official inside an account we wrote is an editorial
+  -- judgement made case by case, which is where it belongs. So names stay in the
+  -- local pipeline as research material and never reach this database.
+
   -- The source's own verdict, kept as theirs and never translated into our
   -- classification. Blue Book's 'unidentified', GEIPAN's 'D', NUFORC's
   -- explanation field. This is what makes 701 Blue Book unidentifieds
   -- filterable as a set on day one.
   source_disposition text,
+
+  -- Established classifications, also kept as theirs. Hynek (NL, ND, CE1...),
+  -- Vallee, and the Sturrock-Vallee-Poher credibility code. A reader who knows
+  -- these systems gets more from the raw code than from our paraphrase of it.
+  hynek_code    text,
+  vallee_code   text,
+  svp_code      text,
+
+  -- The bibliography, and the most valuable thing UFOCAT gives us. Together
+  -- these locate the original publication, so an account can cite Hynek page 47
+  -- rather than citing a database that cites Hynek. Every competitor does the
+  -- latter.
+  cited_source  text,
+  cited_author  text,
+  cited_locator text,
+
+  -- Set when the source flagged its own coordinates as unverified (UFOCAT's
+  -- X3 = 'Q'). Rare, but a pin drawn from a coordinate nobody checked should be
+  -- able to say so.
+  coords_unchecked boolean not null default false,
 
   -- Whether the source holds material we could go and look at, which is a
   -- research signal even when we cannot show the thing itself.
