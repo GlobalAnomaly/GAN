@@ -45,3 +45,23 @@ bot/.cache/
 
 # local admin inbox (runs on your PC, never deployed)
 .data/
+
+# Acquired source data. Never committed, and the reason is licensing before it
+# is size: UFOCAT is copyright CUFOS and its codebook requires written
+# permission to reproduce or publish extracted material, and NUFORC's terms
+# forbid redistribution. Pushing either to a public repository *is* publishing
+# them. Every file here also exceeds GitHub's 100MB limit, so a commit would
+# fail anyway, but that is the lesser reason.
+/UFO Data/
+
+# Local pipeline tooling: virtualenvs, model caches, extracted intermediates.
+# Kept on D and out of the repo.
+/.tools/
+/.pipeline/
+
+# Guard, not a description. Docker Desktop's disk image lives at
+# D:\Git\Websites\Docker, outside this repo, which is where it belongs: it is
+# multi-GB, constantly rewritten while containers run, and the Next dev server
+# watches this directory tree. The entry stays so that pointing Docker back here
+# by accident cannot put a 5GB vhdx in front of git.
+/Docker/
