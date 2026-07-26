@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { FileVideo } from "lucide-react";
+import { MediaBlock } from "@/components/case-blocks";
 import type { CaseMedia } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Phone-shot vertical video and gun-camera 16:9 footage both belong here, and
- * forcing one into the other's frame either crops evidence away or pillarboxes
- * it into a letterbox. The aspect follows the source.
+ * The lead media, with angle switching when a case has more than one.
+ *
+ * Rendering is delegated to MediaBlock so there is one place that knows how to
+ * draw a piece of media. This component used to draw its own, which meant a
+ * self-hosted video file arrived after the fact and was quietly rendered in an
+ * iframe: the gallery had never heard of it. A multi-angle case is stronger
+ * evidence than a single clip, so switching is the only job left here.
  */
-function aspectFor(type: CaseMedia["type"]) {
-  return type === "short" || type === "tiktok"
-    ? "aspect-[9/16] max-h-[70vh]"
-    : "aspect-video";
-}
 
 function labelFor(type: CaseMedia["type"]) {
   switch (type) {
@@ -26,51 +26,17 @@ function labelFor(type: CaseMedia["type"]) {
       return "TikTok";
     case "gov_file":
       return "Official release";
+    case "video_file":
+      return "Official release";
     case "image":
       return "Image";
   }
 }
 
-function Frame({ item }: { item: CaseMedia }) {
-  const aspect = aspectFor(item.type);
-
-  if (item.type === "image") {
-    return (
-      // Sources are arbitrary external hosts, so a plain img avoids having to
-      // allow-list every domain in next.config before a case can be published.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={item.embed_url}
-        alt={item.caption ?? ""}
-        className="w-full rounded-xl border border-border object-cover"
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "mx-auto w-full overflow-hidden rounded-xl border border-border bg-muted",
-        aspect,
-      )}
-    >
-      <iframe
-        src={item.embed_url}
-        title={item.caption ?? "Case footage"}
-        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        loading="lazy"
-        referrerPolicy="strict-origin-when-cross-origin"
-        className="h-full w-full border-0"
-      />
-    </div>
-  );
-}
-
 /**
- * Shown when a case has no footage attached. Plenty of the strongest cases in
- * the archive are documentary rather than filmed, so this is a normal state
- * and should not read like a broken page.
+ * Shown when a case has no footage at all. Plenty of the strongest entries are
+ * documentary rather than filmed, so this is a normal state and should not read
+ * like a broken page.
  */
 function NoMedia({ hasDocuments }: { hasDocuments: boolean }) {
   return (
@@ -104,13 +70,8 @@ export function MediaGallery({
   if (!active) return <NoMedia hasDocuments={hasDocuments} />;
 
   return (
-    <figure className="space-y-3">
-      <Frame item={active} />
-
-      <figcaption className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground">
-        <span className="text-foreground">{labelFor(active.type)}</span>
-        {active.caption && <span>{active.caption}</span>}
-      </figcaption>
+    <div className="space-y-3">
+      <MediaBlock item={active} />
 
       {ordered.length > 1 && (
         <div>
@@ -138,6 +99,6 @@ export function MediaGallery({
           </div>
         </div>
       )}
-    </figure>
+    </div>
   );
 }

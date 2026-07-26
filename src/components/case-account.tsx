@@ -83,6 +83,7 @@ export function CaseAccount({
   english,
   hasFootage,
   children,
+  blocks,
 }: {
   slug: string;
   english: AccountSections;
@@ -94,6 +95,17 @@ export function CaseAccount({
    * English headline is worse than no translation at all.
    */
   children?: React.ReactNode;
+  /**
+   * Media and documents that belong *inside* the account, after a given
+   * section. Passed in already rendered because they are language-neutral:
+   * a sensor video does not change when the prose does.
+   */
+  blocks?: {
+    afterFootage?: React.ReactNode;
+    afterTestimony?: React.ReactNode;
+    afterStatus?: React.ReactNode;
+    afterUnknown?: React.ReactNode;
+  };
 }) {
   const [lang, setLang] = useState<Lang>("en");
   const [translations, setTranslations] = useState<CaseTranslation[] | null>(
@@ -149,11 +161,11 @@ export function CaseAccount({
     window.setTimeout(() => setLoading(false), 150);
   }
 
-  const sections: [string, string][] = [
-    [firstHeading, shown.body_footage],
-    [headings[1], shown.body_testimony],
-    [headings[2], shown.body_status],
-    [headings[3], shown.body_unknown],
+  const sections: [string, string, React.ReactNode][] = [
+    [firstHeading, shown.body_footage, blocks?.afterFootage],
+    [headings[1], shown.body_testimony, blocks?.afterTestimony],
+    [headings[2], shown.body_status, blocks?.afterStatus],
+    [headings[3], shown.body_unknown, blocks?.afterUnknown],
   ];
 
   return (
@@ -207,7 +219,7 @@ export function CaseAccount({
         </p>
       )}
 
-      {sections.map(([heading, body]) => (
+      {sections.map(([heading, body, block]) => (
         <section key={heading} className="mt-8">
           <h2 className="font-[family-name:var(--font-serif)] text-xl">
             {heading}
@@ -215,6 +227,7 @@ export function CaseAccount({
           <div className="prose-account mt-3 text-[0.975rem] text-foreground/90">
             <p>{body}</p>
           </div>
+          {block}
         </section>
       ))}
     </>

@@ -20,9 +20,32 @@ export type Continent =
   | "oceania"
   | "unknown";
 
-export type MediaType = "youtube" | "short" | "tiktok" | "gov_file" | "image";
+export type MediaType =
+  | "youtube"
+  | "short"
+  | "tiktok"
+  | "gov_file"
+  | "image"
+  /** A file we serve ourselves, which public-domain government video allows. */
+  | "video_file";
+
 export type MediaRole = "primary" | "additional";
 export type SourceType = "govt" | "news" | "witness" | "research";
+
+/**
+ * Where a piece of media or a document sits on the page.
+ *
+ * A case is not "video on top, links at the bottom". Official releases pair
+ * footage with poster frames and a resolution report, and each belongs beside
+ * the passage it supports, the way a news story places its pictures.
+ */
+export type BlockPlacement =
+  | "hero"
+  | "after_footage"
+  | "after_testimony"
+  | "after_status"
+  | "after_unknown"
+  | "end";
 
 export type ScienceTopic =
   | "exoplanets"
@@ -51,6 +74,12 @@ export interface CaseMedia {
   caption?: string | null;
   role: MediaRole;
   sort_order: number;
+  placement?: BlockPlacement;
+  /** Credited even when public domain: it is where the reader goes to verify. */
+  credit?: string | null;
+  /** Poster frame, so a video file is not a black rectangle before play. */
+  poster_url?: string | null;
+  is_self_hosted?: boolean;
 }
 
 export interface CaseDocument {
@@ -58,6 +87,10 @@ export interface CaseDocument {
   title: string;
   source_url: string;
   source_note?: string | null;
+  placement?: BlockPlacement;
+  /** "Read the full 12-page report" beats "Read the full report". */
+  page_count?: number | null;
+  published_by?: string | null;
 }
 
 export interface CaseSource {

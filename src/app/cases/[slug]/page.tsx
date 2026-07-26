@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, FileText } from "lucide-react";
 import { ClassificationBadge } from "@/components/badges";
 import { CaseAccount } from "@/components/case-account";
+import { BlockGroup, DocumentBlock } from "@/components/case-blocks";
 import { CaseCardCell } from "@/components/case-card";
 import { MediaGallery } from "@/components/media-gallery";
 import { ShareButtons } from "@/components/share-buttons";
@@ -75,6 +75,15 @@ export default async function CasePage({
   // exist. CaseAccount picks the wording, in whichever language is showing.
   const hasFootage = item.media.length > 0;
 
+  // Media defaults to leading the page; documents default to the list at the
+  // bottom. Both can be moved into the account by setting a placement.
+  const heroMedia = item.media.filter(
+    (m) => (m.placement ?? "hero") === "hero",
+  );
+  const endDocuments = item.documents.filter(
+    (d) => (d.placement ?? "end") === "end",
+  );
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <nav className="mb-6 text-sm text-muted-foreground">
@@ -109,6 +118,36 @@ export default async function CasePage({
           body_status: item.body_status,
           body_unknown: item.body_unknown,
         }}
+        blocks={{
+          afterFootage: (
+            <BlockGroup
+              media={item.media}
+              documents={item.documents}
+              placement="after_footage"
+            />
+          ),
+          afterTestimony: (
+            <BlockGroup
+              media={item.media}
+              documents={item.documents}
+              placement="after_testimony"
+            />
+          ),
+          afterStatus: (
+            <BlockGroup
+              media={item.media}
+              documents={item.documents}
+              placement="after_status"
+            />
+          ),
+          afterUnknown: (
+            <BlockGroup
+              media={item.media}
+              documents={item.documents}
+              placement="after_unknown"
+            />
+          ),
+        }}
       >
         <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-y border-border py-3 text-sm">
           <div className="flex gap-2">
@@ -132,12 +171,27 @@ export default async function CasePage({
           </div>
         </dl>
 
-        <div className="mt-8">
-          <MediaGallery
-            media={item.media}
-            hasDocuments={item.documents.length > 0}
-          />
-        </div>
+        {/* Only the hero-placed media leads the page. Anything positioned
+            inside the account renders there instead, and the "no footage"
+            notice appears only when the case genuinely has none anywhere,
+            rather than whenever the top slot happens to be empty. */}
+        {heroMedia.length > 0 ? (
+          <div className="mt-8">
+            <MediaGallery
+              media={heroMedia}
+              hasDocuments={item.documents.length > 0}
+            />
+          </div>
+        ) : (
+          item.media.length === 0 && (
+            <div className="mt-8">
+              <MediaGallery
+                media={[]}
+                hasDocuments={item.documents.length > 0}
+              />
+            </div>
+          )
+        )}
 
         {/* Why this label, in the site's own words. The reader can audit it. */}
         <aside className="mt-8 rounded-xl border border-border bg-muted/40 p-4">
@@ -154,37 +208,14 @@ export default async function CasePage({
         </aside>
       </CaseAccount>
 
-      {item.documents.length > 0 && (
+      {endDocuments.length > 0 && (
         <section className="mt-10">
           <h2 className="font-[family-name:var(--font-serif)] text-xl">
             Source documents
           </h2>
           <div className="mt-3 flex flex-col gap-3">
-            {item.documents.map((doc) => (
-              <a
-                key={doc.id}
-                href={doc.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
-              >
-                <FileText
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span>
-                  <span className="block text-sm font-medium">{doc.title}</span>
-                  {doc.source_note && (
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                      {doc.source_note}
-                    </span>
-                  )}
-                  <span className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary">
-                    Read the full report at the source
-                    <ExternalLink className="size-3" aria-hidden />
-                  </span>
-                </span>
-              </a>
+            {endDocuments.map((doc) => (
+              <DocumentBlock key={doc.id} doc={doc} />
             ))}
           </div>
         </section>
