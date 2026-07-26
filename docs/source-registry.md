@@ -201,6 +201,55 @@ bot reads to produce them.
 | **UFOCAT 2023** | 320,412 records, 238,499 cases, 91.7% coordinates, citation on every record, **36,424 hand-built same-event clusters** | ✋ **Purchase grants use, not publication.** A natural reading of "we bought it" is that it is ours to publish; the codebook says otherwise in as many words: "Permission to reproduce or publish material extracted from UFOCAT 2023 must be obtained in writing from the author or publisher." So: ingest, match, validate and research freely, and publish nothing extracted until CUFOS answers. This is why the loader refuses to set may_publish_facts. Also drop LEVEL 0 and 1 (92 records) and suppress names on LEVEL 2 |
 | **NUFORC set** | 147,890 records with full narratives, shape, duration, observers, characteristics, NUFORC's own `Explanation` | ⚠️ Terms forbid distribution and commercial exploitation. **Provenance unconfirmed** (supplied by NUFORC, or a third-party mirror?). Facts-only use makes this near-moot; still worth knowing |
 
+### How restricted sources are actually used: the finding-aid rule
+
+Settled 27 July 2026, and it resolves most of the licensing worry by design rather
+than by argument.
+
+**A restricted source is a lead, never a publication.** UFOCAT tells us an event
+happened at a place on a date and hands us the citation to the book that covered
+it (`SOURCE`, `AUTHOR` and `PAGEVOL` on 94-100% of records). We then find that
+event in public material, write our own account, and cite what *we* obtained. Using
+an index to know where to look is ordinary journalism, and it is what UFOCAT's own
+codebook calls the thing: a bibliography.
+
+**The database enforces this, so nobody has to remember it.** From migration 002:
+
+```sql
+create policy "clusters are public when a report is" on event_clusters
+  for select using (exists (
+    select 1 from reports r
+    join sources_registry s on s.id = r.source_id
+    where r.cluster_id = event_clusters.id and s.may_publish_facts));
+```
+
+A cluster surfaces publicly **only** once it holds at least one report from a
+publishable source. So:
+
+- UFOCAT and NUFORC stay `may_publish_facts = false` **permanently**. Not pending,
+  not provisional. That is their role.
+- A UFOCAT-only cluster is invisible. It is a research lead sitting in the queue.
+- When enrichment finds the event in Chronicling America, a NARA file, a newspaper
+  or a police log, that source is ingested as publishable and the cluster surfaces
+  **on its own**.
+- Individual restricted reports stay invisible even inside a visible cluster.
+
+**The scale argument is why this works rather than being a technicality.** A cluster
+with 30+ reports means 30+ separate publications already covered that event.
+Socorro has 55. Those are books, journals and official reports, all public. Finding
+them independently is not a search problem when the bibliography names the page.
+
+**Displayed counts must reflect only what a reader can check.** This is why
+`event_clusters` carries two pairs of counts. `report_count` and `source_count`
+cover everything and drive the work queue; `citable_report_count` and
+`citable_source_count` count only publishable reports and are the only pair ever
+shown. Announcing 55 sources when three are reachable fails our own standard before
+it fails anyone's terms.
+
+**The one thing that would break all of it** is a bot that copies narratives. It
+cannot: narratives are written to a separate local file by the extractor, and there
+is no column to hold them in the database that serves the site.
+
 ### Why NUFORC and GEIPAN are not the same problem
 
 Easy to collapse into one "they said no", and the difference decides what is

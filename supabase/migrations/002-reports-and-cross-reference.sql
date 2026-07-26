@@ -77,10 +77,24 @@ create table if not exists event_clusters (
   country       text,
   continent     continent not null default 'unknown',
 
+  -- Two pairs of counts, and the distinction is the point.
+  --
+  -- The first pair covers every report, including those from sources we may not
+  -- publish. It drives the work queue: a cluster with thirty reports is heavily
+  -- documented somewhere and is worth researching, whatever we can currently show.
   report_count  integer not null default 0,
-  -- How many distinct sources, which is the number worth showing. Five records
-  -- from one database is not corroboration; three records from three is.
   source_count  integer not null default 0,
+
+  -- The second pair counts only reports from sources whose facts we may publish,
+  -- and it is the ONLY pair a reader is ever shown.
+  --
+  -- Otherwise a Socorro pin would announce 55 sources while a reader could click
+  -- through to three. The licensing angle there is arguable; the editorial one is
+  -- not. This site's whole claim is that every assertion is checkable, so a
+  -- corroboration count nobody can verify fails our own standard before it fails
+  -- anyone's terms. Display what we can cite.
+  citable_report_count integer not null default 0,
+  citable_source_count integer not null default 0,
 
   -- Set when we write the account. Until then the cluster is an honest gap,
   -- and a good candidate for the work queue.
