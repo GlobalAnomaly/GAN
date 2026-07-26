@@ -53,7 +53,7 @@ type Row = Record<string, unknown>;
  * casts through every query.
  */
 function rowsOf(data: unknown): Row[] {
-  return rowsOf(data);
+  return (data ?? []) as Row[];
 }
 
 function sortMedia(media: Row[] = []) {

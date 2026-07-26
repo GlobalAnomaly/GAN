@@ -40,6 +40,12 @@ function warnOnce(name: string, error: unknown) {
   console.warn(
     `\n[content] Supabase query "${name}" failed, serving seed content instead.` +
       `\n[content] ${message}` +
+      // The stack matters here: this fallback is silent by design, so without
+      // it a bug in the query layer looks like an empty database rather than
+      // a bug. That is exactly how a recursive helper went unnoticed.
+      (error instanceof Error && error.stack
+        ? `\n[content] ${error.stack.split("\n").slice(1, 6).join("\n[content] ")}`
+        : "") +
       (missingTable
         ? "\n[content] The tables do not exist yet. Open the Supabase SQL editor" +
           "\n[content] and run supabase/schema.sql once.\n"
