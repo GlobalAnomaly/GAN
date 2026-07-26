@@ -690,6 +690,17 @@ October, the Belgian wave) should light up automatically. Test against those
 before trusting anything it finds that nobody has named. Same method as scoring
 the matcher against UFOCAT's `PRN` clusters.
 
+### The full source list
+
+**`docs/source-registry.md`** holds every source, triaged by licence class with a
+status mark and a next action for each: public domain, non-US government needing
+per-country checks, worldwide police FOI, ~25 private organisations to ask,
+what is already acquired, reference-only, and the three not to touch. It also
+tracks the emails to send.
+
+That file is the working checklist and becomes the `sources_registry` table. Keep
+it current; do not let source knowledge live only in conversation.
+
 ### Police FOI, worldwide
 
 Yield varies enormously because the regimes do. Two different jobs:
