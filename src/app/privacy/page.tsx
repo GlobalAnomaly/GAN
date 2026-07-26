@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getFlags } from "@/lib/flags";
 import { SITE } from "@/lib/site";
 
 /**
@@ -18,7 +19,12 @@ export const metadata: Metadata = {
     "What this site collects, which right now is almost nothing, and what changes if that changes.",
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  // Read from the same switch the ad code reads, so this page cannot claim the
+  // site is ad-free while ads are running. A privacy policy that describes a
+  // different site than the one you are on is worse than a blunt one.
+  const { ads_on, accounts_on, comments_on } = await getFlags();
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="font-[family-name:var(--font-serif)] text-3xl sm:text-4xl">
@@ -27,20 +33,46 @@ export default function PrivacyPage() {
 
       <div className="prose-account mt-6 text-[0.975rem] text-foreground/90">
         <p>
-          The short version: we do not have accounts, we do not run ads, we do
-          not track you across the web, and we do not sell anything about you to
-          anyone.
+          The short version: we do not{" "}
+          {accounts_on ? "sell anything about you" : "have accounts"}, we do not
+          track you across the web
+          {ads_on ? "" : ", we do not run ads"}, and we do not sell anything
+          about you to anyone.
         </p>
 
         <h2 className="mt-10 font-[family-name:var(--font-serif)] text-2xl">
           What we store on your device
         </h2>
         <p>
-          One thing: whether you chose the light or dark theme. It is kept in
-          your browser&apos;s local storage so the site does not flip back every
-          visit. It never leaves your device and it is not an advertising
-          cookie.
+          Your theme choice, light or dark, kept in your browser&apos;s local
+          storage so the site does not flip back every visit. It never leaves
+          your device.
         </p>
+
+        {ads_on && (
+          <>
+            <p>
+              Advertising also sets cookies. We use Google AdSense to show ads,
+              and Google places cookies on your device to measure and, depending
+              on your choices, personalise what you are shown. Those cookies are
+              set by Google rather than by us, and they are governed by
+              Google&apos;s own privacy policy as well as this one.
+            </p>
+            <p>
+              If you are in the EU or the UK you are asked for consent before
+              any personalised advertising cookie is set, and you can refuse
+              without losing access to anything on the site. Everything here
+              stays free to read either way.
+            </p>
+          </>
+        )}
+
+        {comments_on && (
+          <p>
+            If you post a comment, it is stored with your account and shown
+            publicly alongside your nickname.
+          </p>
+        )}
 
         <h2 className="mt-10 font-[family-name:var(--font-serif)] text-2xl">
           What our host records

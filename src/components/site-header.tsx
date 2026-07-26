@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Search, X } from "lucide-react";
 import { NAV_LINKS, SITE } from "@/lib/site";
+import { SupportButton } from "@/components/support-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ export function SiteHeader() {
             <Search className="size-4" aria-hidden />
             <span className="hidden lg:inline">Search</span>
           </Link>
+          <SupportButton variant="nav" />
           <ThemeToggle />
           <button
             type="button"

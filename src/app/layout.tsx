@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Source_Serif_4 } from "next/font/google";
+import { AdSenseScript } from "@/components/ads";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -64,6 +65,7 @@ export default function RootLayout({
             {children}
           </main>
           <SiteFooter />
+          <AdSenseScript />
         </ThemeProvider>
       </body>
     </html>

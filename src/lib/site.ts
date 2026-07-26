@@ -48,6 +48,9 @@ export const SITE = {
     "A free, worldwide directory of UFO and UAP cases, from officially acknowledged government footage to unverified public clips, alongside plain-language coverage of the search for life beyond Earth.",
   url: resolveSiteUrl(),
   email: "gbanomaly@hotmail.com",
+  buyMeACoffee: "globalanomaly",
+  /** AdSense publisher id. Only ever used when the ads_on flag is true. */
+  adsensePublisherId: "ca-pub-9915501600290498",
 } as const;
 
 export const NAV_LINKS = [

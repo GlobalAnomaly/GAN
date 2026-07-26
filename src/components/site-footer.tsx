@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportButton } from "@/components/support-button";
 import { SITE } from "@/lib/site";
 
 const FOOTER_LINKS = [
@@ -23,6 +24,14 @@ export function SiteFooter() {
               every claim is attributed, and what remains unknown is said
               plainly.
             </p>
+
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Free to read, and staying that way. If it is useful to you, you
+              can help cover what it costs to run.
+            </p>
+            <div className="mt-3">
+              <SupportButton variant="footer" />
+            </div>
           </div>
 
           <nav className="flex flex-col gap-2">
