@@ -17,6 +17,7 @@ import type {
 import type {
   CaseRecord,
   CaseSummary,
+  CaseTranslation,
   Classification,
   ScienceRecord,
 } from "@/lib/types";
@@ -71,6 +72,17 @@ export async function listCases(
 
 export async function getCaseBySlug(slug: string): Promise<CaseRecord | null> {
   return published(SEED_CASES).find((c) => c.slug === slug) ?? null;
+}
+
+/**
+ * The seed carries no translations. Returning an empty list rather than
+ * throwing means the language switcher simply does not appear, which is the
+ * honest answer when there is nothing to switch to.
+ */
+export async function listCaseTranslations(
+  _slug: string,
+): Promise<CaseTranslation[]> {
+  return [];
 }
 
 export async function getAllCaseSlugs(): Promise<string[]> {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink, FileText } from "lucide-react";
 import { ClassificationBadge } from "@/components/badges";
+import { CaseAccount } from "@/components/case-account";
 import { CaseCardCell } from "@/components/case-card";
 import { MediaGallery } from "@/components/media-gallery";
 import { ShareButtons } from "@/components/share-buttons";
@@ -57,25 +58,6 @@ export async function generateMetadata({
   };
 }
 
-function Section({
-  heading,
-  children,
-}: {
-  heading: string;
-  children: React.ReactNode;
-}) {
-  if (!children) return null;
-
-  return (
-    <section className="mt-8">
-      <h2 className="font-[family-name:var(--font-serif)] text-xl">{heading}</h2>
-      <div className="prose-account mt-3 text-[0.975rem] text-foreground/90">
-        {children}
-      </div>
-    </section>
-  );
-}
-
 export default async function CasePage({
   params,
 }: {
@@ -88,13 +70,10 @@ export default async function CasePage({
 
   const related = await getRelatedCases(slug);
   const url = `${SITE.url}/cases/${item.slug}`;
+  // A documentary case has no footage to describe, so the account's first
+  // heading follows the evidence rather than promising film that does not
+  // exist. CaseAccount picks the wording, in whichever language is showing.
   const hasFootage = item.media.length > 0;
-
-  // A documentary case has no footage to describe, so the heading follows the
-  // evidence rather than promising film that does not exist.
-  const firstHeading = hasFootage
-    ? "What the footage shows"
-    : "What the record shows";
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -113,17 +92,24 @@ export default async function CasePage({
         </Link>
       </nav>
 
-      <header>
-        <ClassificationBadge value={item.classification} />
+      <ClassificationBadge value={item.classification} />
 
-        <h1 className="mt-4 font-[family-name:var(--font-serif)] text-3xl leading-tight sm:text-4xl">
-          {item.title}
-        </h1>
-
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          {item.summary}
-        </p>
-
+      {/* Title, summary and the account all live in one client component so
+          they change language together. Everything between the summary and the
+          account is passed through as children: the meta line, the media and
+          the classification panel are language-neutral. */}
+      <CaseAccount
+        slug={item.slug}
+        hasFootage={hasFootage}
+        english={{
+          title: item.title,
+          summary: item.summary,
+          body_footage: item.body_footage,
+          body_testimony: item.body_testimony,
+          body_status: item.body_status,
+          body_unknown: item.body_unknown,
+        }}
+      >
         <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-y border-border py-3 text-sm">
           <div className="flex gap-2">
             <dt className="text-muted-foreground">Location</dt>
@@ -145,46 +131,28 @@ export default async function CasePage({
             <dd>{CONTINENT_LABELS[item.continent]}</dd>
           </div>
         </dl>
-      </header>
 
-      <div className="mt-8">
-        <MediaGallery
-          media={item.media}
-          hasDocuments={item.documents.length > 0}
-        />
-      </div>
+        <div className="mt-8">
+          <MediaGallery
+            media={item.media}
+            hasDocuments={item.documents.length > 0}
+          />
+        </div>
 
-      {/* Why this label, in the site's own words. The reader can audit it. */}
-      <aside className="mt-8 rounded-xl border border-border bg-muted/40 p-4">
-        <p className="text-sm">
-          <span className="text-muted-foreground">
-            Classified as{" "}
-          </span>
-          <ClassificationBadge value={item.classification} />
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {item.classification_reason}
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {CLASSIFICATION_DEFINITIONS[item.classification]}
-        </p>
-      </aside>
-
-      <Section heading={firstHeading}>
-        <p>{item.body_footage}</p>
-      </Section>
-
-      <Section heading="What witnesses and officials say">
-        <p>{item.body_testimony}</p>
-      </Section>
-
-      <Section heading="Status and corroboration">
-        <p>{item.body_status}</p>
-      </Section>
-
-      <Section heading="What remains unknown">
-        <p>{item.body_unknown}</p>
-      </Section>
+        {/* Why this label, in the site's own words. The reader can audit it. */}
+        <aside className="mt-8 rounded-xl border border-border bg-muted/40 p-4">
+          <p className="text-sm">
+            <span className="text-muted-foreground">Classified as </span>
+            <ClassificationBadge value={item.classification} />
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {item.classification_reason}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {CLASSIFICATION_DEFINITIONS[item.classification]}
+          </p>
+        </aside>
+      </CaseAccount>
 
       {item.documents.length > 0 && (
         <section className="mt-10">

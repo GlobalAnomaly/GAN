@@ -148,6 +148,27 @@ export interface ScienceRecord {
   sources: ScienceSource[];
 }
 
+export type Lang = "en" | "fr" | "pt" | "es";
+
+/**
+ * A translated case account.
+ *
+ * Carries the same four sections as the English original, because a
+ * translation that drops one turns an honest entry into an overconfident one.
+ * `is_machine` drives the label the reader sees: they are told when nobody has
+ * checked it, rather than being left to assume a person did.
+ */
+export interface CaseTranslation {
+  lang: Lang;
+  title: string;
+  summary: string;
+  body_footage: string;
+  body_testimony: string;
+  body_status: string;
+  body_unknown: string;
+  is_machine: boolean;
+}
+
 /** A card is the shared shape the home and browse grids render. */
 export interface CaseSummary
   extends Pick<

@@ -16,6 +16,7 @@ import type {
 import type {
   CaseRecord,
   CaseSummary,
+  CaseTranslation,
   Classification,
   ScienceRecord,
 } from "@/lib/types";
@@ -196,6 +197,43 @@ export async function getCaseBySlug(slug: string): Promise<CaseRecord | null> {
 
   if (error) fail("getCaseBySlug", error);
   return data ? toCase(data as Row) : null;
+}
+
+/**
+ * Translations for a case, keyed by its slug.
+ *
+ * Fetched separately from the case rather than joined into it, because the
+ * English page is statically prerendered and must not carry four languages of
+ * body text it will probably never show.
+ */
+export async function listCaseTranslations(
+  slug: string,
+): Promise<CaseTranslation[]> {
+  const { data, error } = await db()
+    .from("case_translations")
+    .select(
+      "lang, title, summary, body_footage, body_testimony, body_status, body_unknown, is_machine, cases!inner(slug, published)",
+    )
+    .eq("cases.slug", slug)
+    .eq("cases.published", true);
+
+  if (error) fail("listCaseTranslations", error);
+
+  return rowsOf(data)
+    .map((r) => ({
+      lang: r.lang as CaseTranslation["lang"],
+      title: String(r.title ?? ""),
+      summary: String(r.summary ?? ""),
+      body_footage: String(r.body_footage ?? ""),
+      body_testimony: String(r.body_testimony ?? ""),
+      body_status: String(r.body_status ?? ""),
+      body_unknown: String(r.body_unknown ?? ""),
+      is_machine: r.is_machine !== false,
+    }))
+    // A translation missing its title or its unknowns section is not offered
+    // at all: a half-translated account reads as a broken page and, worse, can
+    // silently drop the honesty the English version carried.
+    .filter((t) => t.title && t.body_unknown);
 }
 
 export async function getAllCaseSlugs(): Promise<string[]> {

@@ -77,6 +77,7 @@ function withFallback<A extends unknown[], R>(
 export const listCases = withFallback("listCases", remote.listCases, seed.listCases);
 export const getCaseBySlug = withFallback("getCaseBySlug", remote.getCaseBySlug, seed.getCaseBySlug);
 export const getAllCaseSlugs = withFallback("getAllCaseSlugs", remote.getAllCaseSlugs, seed.getAllCaseSlugs);
+export const listCaseTranslations = withFallback("listCaseTranslations", remote.listCaseTranslations, seed.listCaseTranslations);
 export const getRelatedCases = withFallback("getRelatedCases", remote.getRelatedCases, seed.getRelatedCases);
 export const getLatestCases = withFallback("getLatestCases", remote.getLatestCases, seed.getLatestCases);
 export const getAcknowledgedCases = withFallback("getAcknowledgedCases", remote.getAcknowledgedCases, seed.getAcknowledgedCases);
