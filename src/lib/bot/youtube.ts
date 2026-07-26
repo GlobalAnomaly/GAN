@@ -63,6 +63,14 @@ export interface YouTubeVideo {
   /** false when the uploader disabled embedding, so we must not use it. */
   embeddable: boolean;
   defaultLanguage: string | null;
+  /**
+   * Whether the video has captions at all.
+   *
+   * The API answers this for free as part of the details call, which saves
+   * opening a browser for a video that has no transcript to take. Across a
+   * night that is the difference between minutes and hours of wasted work.
+   */
+  hasCaptions: boolean;
 }
 
 interface FetchOpts {
@@ -128,7 +136,7 @@ interface RawVideo {
     defaultAudioLanguage?: string;
     thumbnails?: Record<string, { url?: string; width?: number; height?: number }>;
   };
-  contentDetails?: { duration?: string };
+  contentDetails?: { duration?: string; caption?: string };
   status?: { embeddable?: boolean; privacyStatus?: string };
 }
 
@@ -159,6 +167,8 @@ function toVideo(raw: RawVideo): YouTubeVideo {
     embedUrl: `https://www.youtube-nocookie.com/embed/${raw.id}`,
     embeddable: raw.status?.embeddable ?? true,
     defaultLanguage: sn.defaultLanguage ?? sn.defaultAudioLanguage ?? null,
+    // The API returns this as the string "true"/"false", not a boolean.
+    hasCaptions: raw.contentDetails?.caption === "true",
   };
 }
 

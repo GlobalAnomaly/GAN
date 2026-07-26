@@ -122,6 +122,21 @@ export default async function InboxPage({
                           Short
                         </span>
                       )}
+                      {/* Worth knowing at a glance: only these are worth
+                          opening YouTube for to copy a transcript. */}
+                      {c.has_captions && (
+                        <span
+                          className="rounded-full bg-confirmed px-2 py-0.5 text-xs text-confirmed-foreground"
+                          title="This video has captions, so a transcript can be copied from YouTube and pasted in."
+                        >
+                          Has captions
+                        </span>
+                      )}
+                      {c.status === "failed" && (
+                        <span className="rounded-full bg-debunked px-2 py-0.5 text-xs text-debunked-foreground">
+                          Failed
+                        </span>
+                      )}
                       {flags && flags.errors.length > 0 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-debunked px-2 py-0.5 text-xs text-debunked-foreground">
                           <AlertTriangle className="size-3" aria-hidden />

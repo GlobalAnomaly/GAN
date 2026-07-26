@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The overnight run.
  *
  * Press start, go to bed, wake up to a full review queue. This is the mode the
@@ -285,6 +285,7 @@ class Run {
             thumbnail_url: v.thumbnailUrl,
             duration_seconds: v.durationSeconds,
             language: v.defaultLanguage,
+            has_captions: v.hasCaptions,
             source_label: source.value,
           })),
         );
@@ -328,6 +329,14 @@ class Run {
 
     await this.log("info", `Drafting ${queue.length} of them.`);
 
+    // A handful of failures across a night is normal: odd videos, empty
+    // descriptions, a model that rambled. A long unbroken streak is different,
+    // and means something systemic broke (Ollama died, the model was deleted,
+    // the disk filled). Grinding through 400 items to produce 400 identical
+    // errors helps nobody, so the run gives up and says so.
+    const GIVE_UP_AFTER = 10;
+    let consecutiveFailures = 0;
+
     for (const [index, candidate] of queue.entries()) {
       if (this.stopped) return;
 
@@ -336,12 +345,28 @@ class Run {
 
       try {
         await this.draftOne(candidate.id, config);
+        consecutiveFailures = 0;
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+
         this.state.totals.failed += 1;
-        await this.log(
-          "error",
-          `${candidate.title.slice(0, 60)}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        consecutiveFailures += 1;
+
+        // Marked rather than left as "new", so the next run skips it instead
+        // of spending another model call on the same broken item.
+        await updateCandidate(candidate.id, {
+          status: "failed",
+          failure: { at: new Date().toISOString(), message },
+        });
+
+        await this.log("error", `Skipped ${candidate.title.slice(0, 55)}: ${message}`);
+
+        if (consecutiveFailures >= GIVE_UP_AFTER) {
+          throw new Error(
+            `${GIVE_UP_AFTER} in a row failed, so something is wrong beyond the videos themselves. ` +
+              `Stopping rather than burning the night on it. Last error: ${message}`,
+          );
+        }
       }
     }
   }

@@ -107,6 +107,7 @@ function toCandidateRow(
     thumbnail_url: v.thumbnailUrl,
     duration_seconds: v.durationSeconds,
     language: v.defaultLanguage,
+    has_captions: v.hasCaptions,
     source_label: sourceLabel,
   };
 }
@@ -375,7 +376,9 @@ function slugify(input: string): string {
   return input
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    // Combining accent marks, written as escapes rather than literal
+    // characters so re-encoding the file cannot corrupt the range.
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);

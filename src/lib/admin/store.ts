@@ -17,7 +17,17 @@ import type { Finding } from "@/lib/bot/validate-account";
 
 const STORE_PATH = resolve(process.cwd(), ".data/inbox.json");
 
-export type CandidateStatus = "new" | "drafted" | "approved" | "dismissed";
+export type CandidateStatus =
+  | "new"
+  | "drafted"
+  | "approved"
+  | "dismissed"
+  /**
+   * Tried and failed. Kept rather than deleted so tonight's run does not spend
+   * a model call rediscovering the same broken item, and so a pattern of
+   * failures is visible instead of silently disappearing.
+   */
+  | "failed";
 
 export interface DraftRecord {
   account: DraftAccount;
@@ -54,10 +64,18 @@ export interface Candidate {
   thumbnail_url: string | null;
   duration_seconds: number | null;
   language: string | null;
+  /**
+   * Whether YouTube says the video has captions. Free from the details call,
+   * and it tells the reviewer at a glance which items are worth opening
+   * YouTube for to copy a transcript, rather than checking each one by hand.
+   */
+  has_captions?: boolean;
   source_label: string;
   fetched_at: string;
   status: CandidateStatus;
   draft?: DraftRecord;
+  /** Why it failed, so the inbox can explain itself rather than just sulking. */
+  failure?: { at: string; message: string };
   /** Set when approved, so the panel can link straight to the live case. */
   published_slug?: string;
 }
@@ -180,7 +198,13 @@ export async function addCandidates(
 
 export async function counts() {
   const store = await readStore();
-  const byStatus = { new: 0, drafted: 0, approved: 0, dismissed: 0 };
+  const byStatus = {
+    new: 0,
+    drafted: 0,
+    approved: 0,
+    dismissed: 0,
+    failed: 0,
+  };
   for (const c of store.candidates) byStatus[c.status] += 1;
 
   return {
