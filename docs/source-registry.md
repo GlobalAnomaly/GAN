@@ -122,7 +122,25 @@ make it usable without it costing us the credibility the rest is built on.
 | Platform | Discovery | Status |
 |---|---|---|
 | **YouTube** | Data API, **already built** (`src/lib/bot/youtube.ts`, quota accounting, `normalize-url.ts`, `has_captions` badge) | ✅ Channel walking at 1 unit per 50 videos, 10,000 units/day free. Search costs 100 per 50, so it is for finding channels, not videos |
-| **TikTok** | **Closed.** Research API is restricted to verified academic and public-interest institutions and explicitly closed to commercial users. No free commercial access to public data through official channels | ⚠️ **Embed-only.** oEmbed works for a URL we already have, so clips arrive by submission or by surfacing elsewhere, never by automated discovery |
+| **YouTube Shorts** | Same API. `MediaType` already has `short` | ✅ **Where TikTok material ends up anyway.** Viral clips get reposted to Shorts, to compilation channels and to local news, usually with more context than the original carried. This is the practical answer to TikTok, at no risk |
+| **TikTok** | **Closed.** Research API is restricted to verified academic and public-interest institutions and explicitly closed to commercial users. No free commercial access to public data through official channels | ⚠️ **Embed-only, and not pursued.** oEmbed works for a URL we already hold, so clips arrive by submission or by hand |
+
+**On searching TikTok by hand:** browsing it as a normal user and pasting an
+interesting link into the admin panel is fine, and it puts human editorial
+judgement in the loop, which beats a keyword scraper. **Automating that browsing
+is not.** Their terms prohibit automated access, doing it with a session cookie
+makes it the operator's account carrying the breach, and their bot detection is
+stronger than YouTube's, which already defeated a Playwright attempt in session 1.
+
+The deciding argument is not the risk of a restricted account. It is that
+`docs/source-registry.md` is about to ask NUFORC, CUFOS and two dozen volunteer
+archives to trust us with their material, largely on the grounds that we are the
+careful ones. That argument does not survive being caught scraping.
+
+**Also worth having, and free:** Reddit's API is permissive, and r/UFOs carries
+clips *plus* people arguing about whether it is a balloon, a drone or a render.
+That argument is more useful to us than a comment thread of emoji, because it
+frequently contains the debunk.
 
 ### Three risks specific to platform video
 
