@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildClusters,
+  consensusDate,
   MAX_CLUSTER_DAYS,
   MAX_CLUSTER_KM,
   type Clusterable,
@@ -168,7 +169,39 @@ test("the cluster date is one a source actually named", () => {
     ],
     [{ a: "a", b: "b", score: 0.95 }],
   );
-  assert.equal(clusters[0].occurred_at, "1980-12-20");
+  assert.ok(["1980-12-20", "1980-12-22"].includes(clusters[0].occurred_at!));
+});
+
+test("the cluster date follows the majority of sources, not the earliest", () => {
+  // The Socorro lesson. The first rule here took the earliest date and dated
+  // Socorro to 23 April 1964; the event was the 24th, and most of its 55 sources
+  // say so. One outlier must not misdate the archive's best-documented case.
+  const { clusters } = buildClusters(
+    [
+      rep("a", { occurred_at: "1964-04-23" }),
+      rep("b", { occurred_at: "1964-04-24" }),
+      rep("c", { occurred_at: "1964-04-24" }),
+      rep("d", { occurred_at: "1964-04-24" }),
+    ],
+    [
+      { a: "a", b: "b", score: 0.95 },
+      { a: "b", b: "c", score: 0.95 },
+      { a: "c", b: "d", score: 0.95 },
+    ],
+  );
+  assert.equal(clusters[0].occurred_at, "1964-04-24");
+});
+
+test("consensusDate never returns a date nobody reported", () => {
+  // Specifically: not the midpoint.
+  assert.equal(consensusDate(["1980-12-20", "1980-12-22"]), "1980-12-20");
+  assert.equal(consensusDate([]), null);
+  assert.equal(consensusDate(["1954-01-01"]), "1954-01-01");
+});
+
+test("consensusDate breaks a tie deterministically, on the earliest", () => {
+  assert.equal(consensusDate(["1980-12-22", "1980-12-20"]), "1980-12-20");
+  assert.equal(consensusDate(["1980-12-20", "1980-12-22"]), "1980-12-20");
 });
 
 test("a cluster with no coordinates anywhere reports none", () => {

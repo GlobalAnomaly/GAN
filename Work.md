@@ -939,6 +939,58 @@ Two decisions the tests pin down:
 - **`source_count` counts publications, not records.** Five rows from one database
   is not corroboration; three rows from three is. That distinction is the claim.
 
+### Clustering, run at full scale
+
+`scripts/ingest/build-clusters.ts` over all 306,817 reports, ~570s.
+
+| | |
+|---|---|
+| Clusters | 255,763 |
+| single-report | 231,096 |
+| multi-report | 24,667 |
+| **multi-source** | **20,885** |
+| Links at >= 0.92 | 144,245 |
+| Suggestions at >= 0.65 | 389,384 |
+| Merges refused as drift | 1 |
+| Largest cluster | 71 reports |
+| Multi-report spread km | median 0.0, 90th 2.2, max 20.0 |
+
+So roughly 51,000 duplicate records collapsed, and **20,885 events carry
+corroboration from two or more separate publications.**
+
+**The end-to-end validation that matters.** Ranked by distinct sources, the top
+clusters are the canonical cases of the entire literature, and nothing told the
+algorithm they were important:
+
+Dates below are as the *first* run reported them, under the old earliest-date
+rule. The Socorro row is the one that exposed the bug; a confirming re-run under
+`consensusDate` was still in flight when this was written, so treat that cell as
+expected rather than verified.
+
+| Sources | Reports | Date | Place | |
+|---|---|---|---|---|
+| 55 | 71 | 1964-04-23 → expect 04-24 | SOCORRO | Lonnie Zamora |
+| 38 | 46 | 1973-10-11 | PASCAGOULA | Hickson and Parker |
+| 34 | 40 | 1954-09-10 | QUAROUBLE | Marius Dewilde |
+| 33 | 54 | 1957-11-02 | LEVELLAND | Texas motorists and police |
+| 32 | 48 | 1965-07-01 | VALENSOLE | Maurice Masse |
+| 32 | 37 | 1967-12-03 | ASHLAND | Officer Schirmer |
+| 32 | 52 | 1959-06-26 | BOIANAI | Father Gill |
+| 30 | 35 | 1948-07-23 | DC3 MONTGOMERY | Chiles-Whitted |
+
+Also note: 71 reports for Socorro against UFOCAT's 70 in one PRN. We found one
+more than CUFOS grouped, which is consistent with the orphaned-record errors seen
+in the Aveley case.
+
+**The date rule had to change, and the first run is what caught it.** The original
+rule took the earliest date any source named, on the principle of never inventing
+one. That dated Socorro to **23 April 1964**; the event was the 24th, most of its
+55 sources say so, and a single outlier was misdating the best-documented case in
+the archive. Now `consensusDate` takes the **modal** date with ties broken by the
+earliest: still always a date some source actually named, but reflecting where the
+sources agree rather than which one was furthest out. Being wrong about Socorro is
+the first thing an informed reader would check.
+
 ### Two consequences of LINK = 0.92, found by running it
 
 Both fall out of the arithmetic rather than having been designed, so they are

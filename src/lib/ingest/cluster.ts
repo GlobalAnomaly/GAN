@@ -131,6 +131,42 @@ function withinLimits(b: Bounds): boolean {
 }
 
 /**
+ * The date a cluster reports: the one most of its sources name.
+ *
+ * Two rules, and the second was learned from being wrong.
+ *
+ * **Never average.** Averaging 20 and 22 December gives the 21st, a day no source
+ * reported, and putting that on a page is inventing a fact.
+ *
+ * **Never just take the earliest either.** That was the first rule here, and on
+ * the first full run it dated Socorro to 23 April 1964. The event was the 24th.
+ * UFOCAT holds both, most of its 55 sources say the 24th, and taking the earliest
+ * let a single outlier misdate the most heavily documented case in the archive by
+ * a day. Being wrong about Socorro is the kind of error a reader checks first.
+ *
+ * So: the modal date, ties broken by the earliest for determinism. The result is
+ * still always a date some source actually named, which is what the
+ * no-invented-detail rule requires, but it now reflects where the sources agree
+ * rather than which one was furthest out.
+ */
+export function consensusDate(dates: string[]): string | null {
+  if (dates.length === 0) return null;
+
+  const tally = new Map<string, number>();
+  for (const d of dates) tally.set(d, (tally.get(d) ?? 0) + 1);
+
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [date, count] of tally) {
+    if (count > bestCount || (count === bestCount && best !== null && date < best)) {
+      best = date;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
  * Groups reports into clusters, refusing merges that would drift.
  *
  * Pairs are consumed strongest first, so the confident links shape each cluster
@@ -202,12 +238,7 @@ export function buildClusters(
     clusters.push({
       members,
       source_count: new Set(rows.map((r) => r.source_key)).size,
-      // The earliest date in the cluster, not an average. An average of two dates
-      // can land on a day no source named, which would be us inventing a fact.
-      occurred_at:
-        dated.length === 0
-          ? null
-          : dated.map((r) => r.occurred_at!).sort()[0],
+      occurred_at: consensusDate(dated.map((r) => r.occurred_at!)),
       lat: geo.length ? geo.reduce((s, r) => s + r.lat!, 0) / geo.length : null,
       lng: geo.length ? geo.reduce((s, r) => s + r.lng!, 0) / geo.length : null,
       span_days: spanDays(b),
