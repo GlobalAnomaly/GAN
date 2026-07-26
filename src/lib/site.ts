@@ -14,13 +14,30 @@
  *      first deploy is correct without anyone having to know the URL first
  *   3. localhost, which only ever applies in development
  */
+export function normalizeOrigin(value: string | undefined): string | null {
+  const raw = value?.trim().replace(/\/+$/, "");
+  if (!raw) return null;
+
+  // A bare domain is the natural thing to type into a hosting dashboard, and
+  // it is not a URL. Prefixing it is friendlier than failing the build.
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  try {
+    return new URL(withProtocol).origin;
+  } catch {
+    // Anything still unparseable is ignored rather than propagated. This runs
+    // at module load, so throwing here takes the entire build down, and a
+    // mistyped variable should not be able to do that.
+    return null;
+  }
+}
+
 function resolveSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (vercel) return `https://${vercel}`;
-
-  return "http://localhost:3000";
+  return (
+    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ??
+    normalizeOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
+    "http://localhost:3000"
+  );
 }
 
 export const SITE = {

@@ -10,7 +10,7 @@
     "bot:youtube": "tsx --env-file-if-exists=.env.local bot/fetch-youtube.ts",
     "bot:import-seed": "tsx --env-file-if-exists=.env.local bot/import-seed.ts",
     "bot:write": "tsx --env-file-if-exists=.env.local bot/write-account.ts",
-    "bot:test": "node --import tsx --test src/lib/bot/*.test.ts"
+    "bot:test": "node --import tsx --test src/lib/**/*.test.ts src/lib/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
