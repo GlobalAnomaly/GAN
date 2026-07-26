@@ -30,8 +30,8 @@ US federal works. No permission needed, attribution to NARA where asked.
 
 | Source | Holds | Status | Next action |
 |---|---|---|---|
-| [NARA UAP Record Collection](https://www.archives.gov/research/topics/uaps) | Record Group 615, created by the 2024 NDAA, still receiving records. **Bulk catalog downloads.** "Can be republished with attribution to NARA" | ✅ | Ingest. Highest priority after GEIPAN |
-| Project Blue Book | 12,618 cases, 701 unidentified, 1947-1969, at NARA | ✅ | Scanned microfilm: needs extraction + geocoding |
+| [NARA UAP Record Collection](https://www.archives.gov/research/topics/uaps) | Record Group 615, created by the 2024 NDAA, still receiving records. **Bulk catalog downloads.** "Can be republished with attribution to NARA" | ✅ | **Now first.** GEIPAN turned out to need permission, so this is the head of the queue |
+| Project Blue Book | 12,618 cases, 701 unidentified, 1947-1969, at NARA | ✅ | **The first map dataset.** Scanned microfilm, so it needs extraction and geocoding rather than an Excel read |
 | CIA UFO collection | Declassified reading-room documents | ✅ | Fetcher |
 | FBI Vault UFO files | Declassified files | ✅ | Fetcher |
 | AARO | 64 official DoD videos with poster frames, case resolution PDFs | ✅ | Scoped in session 1, URL shapes verified |
@@ -44,7 +44,7 @@ Most will be fine. None may be assumed.
 
 | Source | Holds | Status | Next action |
 |---|---|---|---|
-| [GEIPAN](https://www.cnes-geipan.fr/fr/recherche/cas) (France) | 3,368 cases, **downloadable Excel with coordinates**, own A/B/C/D classification | ❓ | **Check mentions légales.** French public data defaults to Licence Ouverte 2.0 under Decree 2017-638 (commercial reuse with attribution), but confirm. **First ingest target** |
+| [GEIPAN](https://www.cnes-geipan.fr/fr/recherche/cas) (France) | 3,368 cases, downloadable Excel with coordinates, own A/B/C/D classification | ✋ **Checked, and restrictive.** See the note below | **Not** the first ingest target. Needs written permission from CNES |
 | [UK National Archives](https://www.nationalarchives.gov.uk/explore-the-collection/explore-by-time-period/postwar/ufo-reports/) | 209 files, ~52,000 pages, **~11,000 sighting reports**, PDFs | ❓ | Confirm Open Government Licence. Crown copyright normally is |
 | Arquivo Nacional + FAB (Brazil) | ~4,500 documents, 1952-2016, five tranches | ❓ | Pairs with Portuguese. Varginha |
 | Library and Archives Canada | UFO files | ❓ | |
@@ -55,6 +55,55 @@ Most will be fine. None may be assumed.
 | Danish Air Force archive | | ❓ | |
 | Italian Air Force OVNI archive | | ❓ | |
 | National Diet Library (Japan) | | ❓ | |
+
+### GEIPAN: checked 27 July 2026, and the earlier expectation was wrong
+
+I expected Licence Ouverte 2.0 on the French open-data default. **It is not.** Their
+own terms:
+
+> les droits de (i) reproduire, représenter, adapter et/ou traduire,
+> (ii) **extraire**, ou (iii) de créer tout travail dérivé de tout ou partie du
+> site Internet et/ou de contenus y afférent, sont formellement et strictement
+> interdits en dehors du cadre strictement limité à l'exception de copie privée ou
+> à visée éducative.
+
+"Tous droits réservés © CNES", and **`extraire` named explicitly**, which is the
+verb for what an ingest pipeline does.
+
+**The educational exception does not cover us**, tempting as it reads. `À visée
+éducative` points at Code de la propriété intellectuelle L.122-5 3° e), which is
+tied to illustration within *teaching and research activities*, excludes
+recreational purposes, and is understood to cover educational establishments. It is
+not inherited by any site with an informative mission. Its pairing with "copie
+privée" signals the intended scale: a person copying a page, not a pipeline taking
+3,368 structured cases.
+
+**Keeping that section free does not fix it either**, though it is the right
+commitment and the strongest sentence in any request we send. A free section inside
+a site carrying ads and memberships does not make the site non-commercial, and
+"free" is not "educational" in the sense the exception means.
+
+**And the facts-are-free argument fails here specifically.** Against NUFORC, Feist
+carried the day. France implements the **EU database right**, which protects
+extraction of a substantial part of a database even where the contents are not
+themselves protectable. This is exactly the caveat flagged as surviving Feist, and
+GEIPAN is where it bites.
+
+**Required attribution, verbatim, for if permission arrives** (they specify the
+exact wording):
+
+> ce document est extrait du site Internet GEIPAN. Informations protégées - Tous
+> droits réservés © CNES (+ année publication)
+
+**Consequence: the first map dataset is Blue Book and NARA, not GEIPAN.** US
+federal public domain, nobody to ask. Costs more work, since Blue Book is scanned
+microfilm needing extraction and geocoding rather than an Excel read, but it has no
+permission gate and it makes the map the *official* record, which was the more
+differentiated version anyway.
+
+One point not to overstate: GEIPAN publishes bulk Excel exports for download, and
+it is fair to wonder what those are for if not reuse. But `extraire` is listed
+explicitly, so do not build on that reading without asking.
 
 ## C. Police FOI, worldwide
 
@@ -205,6 +254,7 @@ tier, and it needs no new field to express.
 | NUFORC (CTO) | Permission for the 159,320 records, and confirmation of how the local set was obtained. Their terms forbid taking; nothing forbids asking | Not sent |
 | CUFOS / Donald A. Johnson, Sun River Research Institute, `infocenter@cufos.org` | Written permission for UFOCAT. Their stated criterion is researchers who "make their findings freely available", which describes this site | Not sent |
 | AFU (Sweden) | First of the batch to the private organisations | Not sent |
+| CNES / GEIPAN | Permission to ingest and display the 3,368 case files. Their terms forbid extraction outright, so this is a request rather than a formality. Lead with what they will care about: free, ungated, credited in their required wording, and their A/B/C/D classification kept as theirs rather than translated into ours | Not sent |
 
 **The pitch, for all of them:** free, no paywall, no membership gate on cases,
 four languages, every claim attributed, and the source credited on every record.

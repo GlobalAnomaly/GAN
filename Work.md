@@ -962,21 +962,21 @@ corroboration from two or more separate publications.**
 clusters are the canonical cases of the entire literature, and nothing told the
 algorithm they were important:
 
-Dates below are as the *first* run reported them, under the old earliest-date
-rule. The Socorro row is the one that exposed the bug; a confirming re-run under
-`consensusDate` was still in flight when this was written, so treat that cell as
-expected rather than verified.
+**Confirmed after the `consensusDate` fix.** Two dates moved, and both moved to
+the correct historical date: Socorro from 04-23 to **04-24**, and Chiles-Whitted
+from 07-23 to **07-24**. Cluster counts were identical across both runs, so only
+the reported date changed and not the grouping.
 
 | Sources | Reports | Date | Place | |
 |---|---|---|---|---|
-| 55 | 71 | 1964-04-23 → expect 04-24 | SOCORRO | Lonnie Zamora |
+| 55 | 71 | 1964-04-24 | SOCORRO | Lonnie Zamora |
 | 38 | 46 | 1973-10-11 | PASCAGOULA | Hickson and Parker |
 | 34 | 40 | 1954-09-10 | QUAROUBLE | Marius Dewilde |
 | 33 | 54 | 1957-11-02 | LEVELLAND | Texas motorists and police |
 | 32 | 48 | 1965-07-01 | VALENSOLE | Maurice Masse |
 | 32 | 37 | 1967-12-03 | ASHLAND | Officer Schirmer |
 | 32 | 52 | 1959-06-26 | BOIANAI | Father Gill |
-| 30 | 35 | 1948-07-23 | DC3 MONTGOMERY | Chiles-Whitted |
+| 30 | 35 | 1948-07-24 | DC3 MONTGOMERY | Chiles-Whitted |
 
 Also note: 71 reports for Socorro against UFOCAT's 70 in one PRN. We found one
 more than CUFOS grouped, which is consistent with the orphaned-record errors seen
@@ -1032,10 +1032,21 @@ It refuses two things by construction:
 - **It never writes narrative or witness names.** Neither has a column.
 
 **The real gate on a visible map is not this loader.** UFOCAT cannot be shown
-without permission, so loading it produces 300,000 invisible rows and no pins. The
-critical path is **GEIPAN's licence check**: 3,368 cases, coordinates already
-present, and if it is Licence Ouverte 2.0 as expected, that is the first dataset
-we can actually put on a map.
+without permission, so loading it produces 300,000 invisible rows and no pins.
+
+**GEIPAN was checked on 27 July 2026 and is not the answer.** Its terms forbid
+`extraire` outright and assert all rights reserved to CNES; the educational
+exception it names does not reach us, and France's implementation of the EU
+database right means the facts-are-free argument that worked against NUFORC fails
+here. Full reasoning in `docs/source-registry.md`.
+
+**So the first map dataset is Project Blue Book plus the NARA UAP collection.** US
+federal public domain, no licence to check and nobody to ask: 12,618 Blue Book
+cases with 701 unidentified, NARA Record Group 615 with bulk downloads, AARO's 64
+videos, and Wikidata coordinates for notable incidents. Blue Book is scanned
+microfilm, so it needs extraction and geocoding rather than an Excel read. More
+work than GEIPAN would have been, no permission gate, and it makes the map the
+*official* record, which was the more differentiated version anyway.
 
 ### Police FOI, worldwide
 
