@@ -54,9 +54,13 @@ bot/.cache/
 # fail anyway, but that is the lesser reason.
 /UFO Data/
 
-# Local pipeline tooling: virtualenvs, model caches, extracted intermediates.
-# Kept on D and out of the repo.
+# Local tooling only: the Python venv that reads .accdb (this machine has no
+# Microsoft ACE driver) and its pip cache. The ingest *scripts* live in
+# scripts/ingest/ and are versioned; only the environment is ignored.
 /.tools/
+
+# Extracted intermediates. Regenerable from UFO Data/ by rerunning the
+# extractor, and derived from licensed sources, so never committed.
 /.pipeline/
 
 # Guard, not a description. Docker Desktop's disk image lives at

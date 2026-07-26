@@ -701,6 +701,55 @@ tracks the emails to send.
 That file is the working checklist and becomes the `sources_registry` table. Keep
 it current; do not let source knowledge live only in conversation.
 
+### UFOCAT extraction: the encoding facts, hard-won
+
+`scripts/ingest/ufocat_extract.py` reads the `.accdb` and writes normalised JSONL
+to `.pipeline/`. Run it with `.tools/venv/Scripts/python.exe` (Python because
+nothing else reads Access without the Microsoft ACE driver, which this machine
+lacks). Facts and narratives go to **separate files**, so publishable data and
+local-only prose cannot be confused downstream.
+
+**Result: 306,817 records from 320,412 rows.**
+
+| Rule | Count | Why |
+|---|---|---|
+| Dropped, LEVEL 0 and 1 | 92 | Contributor marked confidential |
+| Dropped, `TYPE` starts `0` | 13,503 | **Deliberately not UFO events**: nuclear tests, aircraft crashes, power failures, crop circles, deaths of UFO figures. Would have become sightings on the map |
+| Names withheld, LEVEL 2 | 2 | Witness names confidential |
+| Coordinates kept | 282,103 | 92% |
+| Coordinates dropped | 179 | 140 British grid, 33 out of range, 4 flagged erroneous, 2 French metric |
+| Dates | 283,134 day / 15,300 month / 7,939 year / 444 unknown | Precision downgraded, never invented into a 1 January |
+
+**Every one of these was verified, not assumed, and each would have corrupted the
+archive silently:**
+
+- **Longitude sign.** The codebook's English system makes **West and North
+  positive**. Standard practice is West negative, so **longitude is negated and
+  latitude is not.** Checked both hemispheres: Newport WA stores `117.05` and
+  sits at 117.05 W; Hoppers Crossing, Australia stores `-144.69` and sits at
+  144.69 E. Get this wrong and every US pin lands in Central Asia.
+- **`X3` selects one of four coordinate systems**, but is null on 320,400 of
+  320,412 rows. The exotic cases are 12 records: `=` known erroneous, `Q`
+  unchecked, `M` French metric at 400 grads from the Paris meridian.
+- **148 rows put an Ordnance Survey grid square in `LATITUDE`** (`' SD .27'`).
+  Proper OSGB36 conversion is real work and a 100km square is too coarse for a
+  pin, so the record is kept and coordinates dropped.
+- **33 rows hold impossible values**, from a missing separator in the fixed-width
+  field (`4005` for 40.05, `-8155` for -81.55) and from plain typos (`94.77`
+  where North Little Rock is at 34.77). **Deliberately not repaired**: dividing by
+  100 would also convert the typos into plausible but wrong locations, which is
+  the worst available outcome. Dropped, record kept.
+- **`REGION` is not a country.** It is one of 17 continent-level codes where
+  **`CA` means Central America and `CN` means Canada**, and `STATE` is the
+  subdivision (`GBR` is Great Britain inside `EU`). **`STATE` alone is not
+  unique**, since `CA` is both California and the Central America region, so
+  WORLD is keyed on the pair. An early check that assumed REGION was a country
+  reported hundreds of false errors.
+
+**Geography, once resolved:** United States 195,946, Canada 22,047, Great Britain
+16,999, France 10,864, Brazil 4,340, Argentina 4,284, Spain 3,128, Italy 2,731.
+The French and Iberian volume is real material behind the multilingual argument.
+
 ### Police FOI, worldwide
 
 Yield varies enormously because the regimes do. Two different jobs:
