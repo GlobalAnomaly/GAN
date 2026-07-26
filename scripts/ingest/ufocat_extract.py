@@ -279,6 +279,11 @@ def main():
                 "occurred_raw": " ".join(filter(None, [
                     clean(t["YEAR"][i]), clean(t["MO"][i]),
                     clean(t["DAY"][i]), clean(t["TIME"][i])])) or None,
+                # Kept as its own field, not only inside occurred_raw. The
+                # matcher uses clock proximity to separate otherwise identical
+                # candidates: two accounts of one event at 21:00 and 21:05 are a
+                # far better match than 21:00 and 04:00 on the same date.
+                "time_raw": clean(t["TIME"][i]),
                 "lat": lat,
                 "lng": lng,
                 "coords_unchecked": x3 == "Q",

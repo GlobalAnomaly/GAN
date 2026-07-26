@@ -56,6 +56,7 @@ async function load(): Promise<Row[]> {
       country: r.country,
       shape: r.shape,
       observers: r.observers,
+      time_raw: r.time_raw ?? null,
       source_key: r.cited_source ?? "unknown",
       cited_source: r.cited_source ?? null,
       cited_author: r.cited_author ?? null,

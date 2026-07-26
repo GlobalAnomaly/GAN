@@ -3,6 +3,7 @@ import { Inter, Source_Serif_4 } from "next/font/google";
 import { AdSenseScript } from "@/components/ads";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SiteBackdrop } from "@/components/site-backdrop";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SkipLink } from "@/components/skip-link";
@@ -58,6 +59,8 @@ export default function RootLayout({
         <ThemeProvider>
           <I18nProvider>
             <SkipLink />
+            {/* Behind everything, on every route. */}
+            <SiteBackdrop />
             <SiteHeader />
             <main id="main" className="flex-1">
               {children}

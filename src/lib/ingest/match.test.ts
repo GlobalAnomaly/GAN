@@ -7,6 +7,7 @@ import {
   normalizePlace,
   scorePair,
   stringSimilarity,
+  timeScore,
   LINK_THRESHOLD,
   SUGGEST_THRESHOLD,
   type MatchableReport,
@@ -125,6 +126,56 @@ test("the same event at the same spot links without asking", () => {
   assert.equal(scored.action, "link");
 });
 
+test("a perfect match still links when neither source gave a time", () => {
+  // 17% of records have no time. Withholding the time bonus must not put them
+  // permanently below the link bar, or the auto-link only ever fires on the
+  // better-documented five-sixths and the rest queue up forever.
+  const scored = scorePair(
+    report({ time_raw: null }),
+    report({ id: "b", time_raw: null, source_key: "nuforc" }),
+  );
+  assert.equal(scored.action, "link", `got ${scored.score}`);
+});
+
+test("agreeing on the minute outranks having no time at all", () => {
+  // The point of the time signal: it separates candidates that were previously
+  // identical, which is where the auto-link decision is actually made.
+  const withTime = scorePair(
+    report({ time_raw: "2100" }),
+    report({ id: "b", time_raw: "2105", source_key: "nuforc" }),
+  );
+  const withoutTime = scorePair(
+    report({ time_raw: null }),
+    report({ id: "b", time_raw: null, source_key: "nuforc" }),
+  );
+  const disagreeing = scorePair(
+    report({ time_raw: "2100" }),
+    report({ id: "b", time_raw: "0400", source_key: "nuforc" }),
+  );
+  assert.ok(withTime.score > withoutTime.score, "close times should win");
+  assert.ok(withoutTime.score > disagreeing.score, "silence beats disagreement");
+});
+
+test("clock proximity wraps around midnight", () => {
+  // 23:50 and 00:10 are twenty minutes apart, not twenty-three hours and forty.
+  // Twenty minutes sits in the second band, so 0.9 rather than 1.
+  assert.equal(timeScore("2350", "0010"), 0.9);
+  // And inside ten minutes it is a full match, still across the boundary.
+  assert.equal(timeScore("2355", "0002"), 1);
+  // Sanity: without the wrap these would read as almost a full day apart.
+  assert.ok(timeScore("2350", "0010")! > timeScore("2100", "0400")!);
+});
+
+test("timeScore withholds judgement when either side is missing", () => {
+  assert.equal(timeScore("2100", null), null);
+  assert.equal(timeScore(null, null), null);
+});
+
+test("timeScore rejects values that are not times", () => {
+  assert.equal(timeScore("9999", "2100"), null);
+  assert.equal(timeScore("night", "2100"), null);
+});
+
 test("the Mantell disagreement is still caught", () => {
   // Sources place one event at Fort Knox and at Frankfort, about 100km apart.
   // A matcher that demanded tight agreement would miss the best-documented
@@ -202,10 +253,31 @@ test("agreeing on shape cannot rescue a weak match", () => {
 // Blocking
 // ---------------------------------------------------------------------------
 
-test("a report blocks into its own cell and its eight neighbours", () => {
+test("a report blocks on its place name AND its nine grid cells", () => {
+  // The name key is emitted even when coordinates exist. Without that, records
+  // with coordinates and records without could never share a block, which was
+  // 44% of the true pairs blocking failed to reach.
   const keys = blockKeys(report());
-  assert.equal(keys.length, 9);
-  assert.ok(keys.includes("1980|52,1"));
+  assert.equal(keys.length, 10);
+  assert.ok(keys.includes("1980|52,1"), "own grid cell");
+  assert.ok(keys.includes("1980|name:rendlesham"), "place name");
+});
+
+test("a report with coordinates can meet one without", () => {
+  const withCoords = blockKeys(report());
+  const without = blockKeys(report({ lat: null, lng: null }));
+  assert.ok(
+    withCoords.some((k) => without.includes(k)),
+    "the two populations must be able to share a block",
+  );
+});
+
+test("the same place with a wrong-signed longitude still meets itself", () => {
+  // UFOCAT holds SANDWICH at both -1.339 and +1.34, 186km apart, one of them a
+  // sign error. The grid cannot reconcile that; the identical name can.
+  const a = blockKeys(report({ location_raw: "SANDWICH", lat: 51.275, lng: -1.339 }));
+  const b = blockKeys(report({ location_raw: "SANDWICH", lat: 51.27, lng: 1.34 }));
+  assert.ok(a.some((k) => b.includes(k)));
 });
 
 test("two reports either side of a cell boundary share a block", () => {
@@ -233,6 +305,8 @@ test("new year's eve and new year's day can still meet", () => {
 });
 
 test("mid-year dates do not pay for the year-edge widening", () => {
+  // Nine grid cells plus one name key, and no duplicate year.
   const keys = blockKeysWithYearEdges(report({ occurred_at: "1980-06-15" }));
-  assert.equal(keys.length, 9);
+  assert.equal(keys.length, 10);
+  assert.ok(keys.every((k) => k.startsWith("1980|")));
 });

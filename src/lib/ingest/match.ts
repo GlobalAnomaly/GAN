@@ -36,6 +36,8 @@ export interface MatchableReport {
   observers: number | null;
   /** Which source it came from. Two records from one source corroborate less. */
   source_key: string;
+  /** Local clock time as the source wrote it ("0045", "21:30"), when given. */
+  time_raw?: string | null;
 }
 
 export interface Signals {
@@ -45,6 +47,8 @@ export interface Signals {
   distance_km: number | null;
   /** 0 to 1, on the normalised place name. */
   location_similarity: number | null;
+  /** 0 to 1 on clock proximity, or null when either side gave no time. */
+  time_proximity: number | null;
   shape_agrees: boolean | null;
   same_source: boolean;
 }
@@ -69,14 +73,20 @@ export interface Scored {
  * publications, which is both the fair test and the one that carries the
  * corroboration claim:
  *
- *     score >= 1.000   97.1% precision   93,001 pairs
- *     score >= 0.950   89.7%
- *     score >= 0.900   80.7%
- *     score >= 0.700   56.6%
- *     score >= 0.650   49.0%   (93.4% recall of reachable pairs)
+ *     score >= 0.950   98.3% precision    61,119 pairs
+ *     score >= 0.900   94.6%             155,299
+ *     score >= 0.850   86.1%             236,852
+ *     score >= 0.800   76.9%             287,356
+ *     score >= 0.650   55.4%             433,231
  *
- * So `link` demands near-perfect agreement on every signal. It buys 35% recall,
- * which sounds poor and is not: the other 65% are not lost, they go to review.
+ * `LINK` sits at 0.92 rather than higher for a specific reason. The maximum
+ * possible score is 0.97, and a pair agreeing perfectly on date, place and name
+ * but where neither source recorded a time reaches only 0.925. A bar above that
+ * would permanently exclude the 17% of records with no time, so the auto-link
+ * would only ever fire on the better-documented five-sixths. 0.92 admits those and
+ * still rejects a pair that actively disagrees on time, which tops out at 0.8935.
+ *
+ * The other 65% of pairs are not lost. They go to review.
  *
  * Why measuring against UFOCAT understates us, and why we do not tune to
  * maximise agreement with it: their unit is one witness via one source, so a
@@ -88,7 +98,7 @@ export interface Scored {
  * where a transposed PRN (166684 against 106684) orphaned one record from its
  * own cluster.
  */
-export const LINK_THRESHOLD = 0.97;
+export const LINK_THRESHOLD = 0.92;
 export const SUGGEST_THRESHOLD = 0.65;
 
 const EARTH_RADIUS_KM = 6371;
@@ -191,14 +201,64 @@ function dateScore(gap: number | null, aPrec: string, bPrec: string): number {
   return 0;
 }
 
-/** Generous by design: see the Mantell note at the top of this file. */
+/**
+ * Generous by design: see the Mantell note at the top of this file.
+ *
+ * Continuous rather than stepped. The stepped version returned exactly 1 for
+ * anything within 5km, which combined with an exact date to pin 93,001 pairs at
+ * a score of precisely 1.0. That destroyed all ranking at the top of the
+ * distribution, which is the one place ranking matters, because it is where the
+ * auto-link decision is made.
+ *
+ * 1/(1 + km/60) keeps the shape we measured: 0km scores 1, 5km 0.92, 25km 0.71,
+ * 100km 0.375, and 150km 0.286, so the Mantell spread still clears the suggest
+ * bar. Beyond 200km it is floored to zero, because at that range a same-day pair
+ * is a wave rather than a duplicate.
+ */
 function distanceScore(km: number | null): number {
   if (km === null) return 0;
-  if (km <= 5) return 1;
-  if (km <= 25) return 0.85;
-  if (km <= 60) return 0.6;
-  if (km <= 150) return 0.35;
-  return 0;
+  if (km > 200) return 0;
+  return 1 / (1 + km / 60);
+}
+
+/**
+ * Time of day, when both sources give one. The tiebreaker the score was missing.
+ *
+ * UFOCAT carries a time on 82.9% of records, and it discriminates exactly where
+ * distance and date have both saturated: two accounts of one event at 21:00 and
+ * 21:05 are a far better match than 21:00 and 04:00 on the same date, and until
+ * now those scored identically.
+ *
+ * Returns null rather than 0 when either side is missing, so a report without a
+ * time is not penalised for it. Roughly a sixth of them have none, and treating
+ * silence as disagreement would push them all below the link bar.
+ */
+export function timeScore(a: string | null, b: string | null): number | null {
+  const parse = (raw: string | null): number | null => {
+    if (!raw) return null;
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 3) return null;
+    const padded = digits.padStart(4, "0").slice(0, 4);
+    const h = Number(padded.slice(0, 2));
+    const m = Number(padded.slice(2));
+    if (h > 23 || m > 59) return null;
+    return h * 60 + m;
+  };
+
+  const ma = parse(a);
+  const mb = parse(b);
+  if (ma === null || mb === null) return null;
+
+  // Shortest way round the clock: 23:50 and 00:10 are twenty minutes apart, not
+  // twenty-three hours and forty.
+  const raw = Math.abs(ma - mb);
+  const minutes = Math.min(raw, 1440 - raw);
+
+  if (minutes <= 10) return 1;
+  if (minutes <= 30) return 0.9;
+  if (minutes <= 90) return 0.7;
+  if (minutes <= 180) return 0.45;
+  return 0.15;
 }
 
 export function scorePair(a: MatchableReport, b: MatchableReport): Scored {
@@ -216,10 +276,13 @@ export function scorePair(a: MatchableReport, b: MatchableReport): Scored {
   const shape_agrees =
     a.shape && b.shape ? a.shape.toLowerCase() === b.shape.toLowerCase() : null;
 
+  const time_proximity = timeScore(a.time_raw ?? null, b.time_raw ?? null);
+
   const signals: Signals = {
     day_gap: gap,
     distance_km,
     location_similarity,
+    time_proximity,
     shape_agrees,
     same_source: a.source_key === b.source_key,
   };
@@ -246,15 +309,31 @@ export function scorePair(a: MatchableReport, b: MatchableReport): Scored {
   // Date and place carry the decision. Shape is corroboration, never evidence:
   // "Disc" is the most common value in the database and agreeing on it says
   // almost nothing.
-  let score = 0.55 * date + 0.35 * place;
+  //
+  // Weights sum to 0.94 before the optional signals, so a pair agreeing perfectly
+  // on date and place still leaves headroom. Time and shape then decide between
+  // otherwise identical candidates, which is what the old formulation could not
+  // do: its weights summed to exactly 1.0 and clamped, so the whole top of the
+  // distribution collapsed onto a single value.
+  // A missing time counts as NEUTRAL, not as absent.
+  //
+  // The first version withheld the bonus when either side gave no time, which
+  // ranked a pair seven hours apart *above* a pair with no times at all. That is
+  // backwards: silence is uninformative, whereas 21:00 against 04:00 is evidence
+  // these were two different sightings that night. Substituting the midpoint puts
+  // the three cases in the right order, and the ordering is asserted in the tests
+  // rather than left to be rediscovered.
+  const timeFactor = time_proximity ?? 0.5;
 
-  if (location_similarity !== null) score += 0.06 * location_similarity;
-  if (shape_agrees) score += 0.04;
-
-  // Two records from one source that look identical are usually one report
-  // entered twice, which is worth merging but is not corroboration. The caller
-  // uses `same_source` when counting how many sources back a cluster.
-  score = Math.min(1, score);
+  // Weights sum to 0.97, deliberately short of 1. The previous formulation summed
+  // to exactly 1 and clamped, so 93,001 pairs pinned at the top and no ranking
+  // was possible precisely where the auto-link decision gets made.
+  const score =
+    0.48 * date +
+    0.30 * place +
+    0.07 * (location_similarity ?? 0) +
+    0.09 * timeFactor +
+    (shape_agrees ? 0.03 : 0);
 
   const action =
     score >= LINK_THRESHOLD
@@ -279,27 +358,54 @@ export function scorePair(a: MatchableReport, b: MatchableReport): Scored {
 export function blockKeys(r: MatchableReport): string[] {
   if (!r.occurred_at) return [];
   const year = r.occurred_at.slice(0, 4);
-
-  if (r.lat === null || r.lng === null) {
-    // Without coordinates the only usable block is the year plus the place
-    // name's first token, or every undated-location report in a year would be
-    // compared with every other.
-    const place = normalizePlace(r.location_raw).split(" ")[0];
-    return place ? [`${year}|name:${place}`] : [];
-  }
-
   const keys: string[] = [];
-  const baseLat = Math.floor(r.lat);
-  const baseLng = Math.floor(r.lng);
 
-  for (let dLat = -1; dLat <= 1; dLat++) {
-    for (let dLng = -1; dLng <= 1; dLng++) {
-      keys.push(`${year}|${baseLat + dLat},${baseLng + dLng}`);
+  // The name key is emitted for EVERY record, not only those lacking
+  // coordinates. Measured: keying coordinate records on the grid alone and
+  // coordinate-less ones on the name alone meant the two populations could never
+  // meet, which accounted for 44% of the true pairs blocking could not reach
+  // (7,078 of 16,076). 8% of UFOCAT has no coordinates and much more of the older
+  // material, so that was a large hole shaped like an implementation detail.
+  //
+  // It also catches pairs where one record's coordinates are simply wrong.
+  // UFOCAT holds SANDWICH at both -1.339 and +1.34 longitude, 186km apart and
+  // one of them a sign error; the grid can never reconcile that, and the
+  // identical place name reconciles it immediately.
+  const place = normalizePlace(r.location_raw).split(" ")[0];
+  if (place) keys.push(`${year}|name:${place}`);
+
+  if (r.lat !== null && r.lng !== null) {
+    const baseLat = Math.floor(r.lat);
+    const baseLng = Math.floor(r.lng);
+
+    for (let dLat = -1; dLat <= 1; dLat++) {
+      for (let dLng = -1; dLng <= 1; dLng++) {
+        keys.push(`${year}|${baseLat + dLat},${baseLng + dLng}`);
+      }
     }
   }
 
   return keys;
 }
+
+/**
+ * Two classes of unreachable pair are left alone on purpose.
+ *
+ * **Sources disagreeing on the year** (3,485 pairs, 22% of the gap). Adding
+ * adjacent-year blocks would not help, because the date gate correctly refuses a
+ * pair a year apart: two reports twelve months apart are two events, and CUFOS
+ * only linked these using specific knowledge of particular cases. That is
+ * judgement, and automating it would trade a real gain for a class of silent
+ * error we have no way to audit.
+ *
+ * **Coordinates more than 200km apart** (3,435 pairs, 21%). Some are the sign
+ * errors described above and the name key now catches those. The rest are pairs
+ * like CHEREPOVETS and CHAROVSK, 127km apart on the same day, which CUFOS placed
+ * in one case. Under our model those are not duplicates at all: they are two
+ * events in a wave, which is a separate relation with its own table. Refusing to
+ * merge them is the correct answer rather than a miss.
+ */
+
 
 /**
  * The year boundary problem: a sighting at 23:50 on 31 December is one day from

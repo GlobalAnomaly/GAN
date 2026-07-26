@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { CaseCardCell } from "@/components/case-card";
-import { HomeBackdrop } from "@/components/home-backdrop";
 import { ScienceCard } from "@/components/science-card";
 import { ScrollStrip } from "@/components/scroll-strip";
 import { SearchBox } from "@/components/search-box";
@@ -26,8 +25,6 @@ export default async function Home() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <HomeBackdrop />
-
       <section className="text-center">
         {/* The wordmark lives in the artwork, so the heading below carries the
             tagline rather than repeating the name. Priority because this is

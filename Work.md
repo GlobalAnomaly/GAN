@@ -652,6 +652,47 @@ git config --global --add safe.directory 'D:/Git/Websites/Global Anomaly Network
 or taking ownership of `.git` back to the normal user. **Operator decision, not
 taken unilaterally**, since it edits global git config.
 
+### The standing enrichment rule
+
+**Operator decision, 27 July 2026.** For any case we write up, after clustering
+has settled whether it is a duplicate, the pipeline goes looking for
+contemporaneous local reporting and police records. Not an occasional extra: a
+standard step.
+
+**Order matters, and it is what makes this affordable.** Enrichment runs on the
+*cluster*, never on the report, and only on clusters being written up. Per report
+that is 306,817 searches; per cluster 238,499; gated behind relevance scoring it
+is a few hundred. Same work, three orders of magnitude apart, and clustering has
+to come first for the gating to mean anything.
+
+**Search the event date and the following two days, not just the date.** An
+evening sighting appears in the *next* morning's edition, and a weekly paper may
+carry it two or three days later. Searching only the event date would miss most
+local coverage of exactly the evening events that make up the bulk of the
+archive. Police logs are the same shape: a call at 23:40 lands in the next day's
+occurrence book.
+
+**Where to look, by era:**
+
+- **Pre-1963 US**: [Chronicling America](https://chroniclingamerica.loc.gov/),
+  Library of Congress, public domain, full text, has an API. Lands squarely on the
+  1947 wave, the 1952 Washington flap and the 1897 airship reports. Nobody in this
+  field uses it systematically.
+- **Australia**: [Trove](https://trove.nla.gov.au/), the same idea.
+- **Post-1963**: mostly paywalled and in copyright. Cite, link, quote sparingly,
+  write our own. Same rule as every other source.
+- **Police**: the harvest-versus-request split recorded below.
+
+**What it produces.** Not prose to paraphrase, but citations: a named newspaper, a
+date, a page. That attaches to the case as a source and puts contemporaneous
+primary reporting under our account, which is the same discipline as using UFOCAT
+as a bibliography rather than as a text. It is also the thing that separates a
+written case from a database row, and no competitor does it.
+
+**Cost, stated plainly:** this is the slowest step in the whole pipeline and it
+will dominate the time budget for any case it runs on. That is the trade, and it
+was made deliberately: accuracy and primary sourcing over volume.
+
 ### Enrichment research from date + place
 
 Gated behind the relevance scoring, always. It cannot run across 238,499 cases;
@@ -811,9 +852,61 @@ before tuning scores further.
 - Name similarity substitutes for coordinates only at >= 0.8, because
   `springfield`/`springville` scores 0.5 while a transposition scores 0.67. The
   margin is narrow, so coordinates decide whenever we have them.
-- **Known flaw:** the score saturates at exactly 1.0, so 93,001 pairs pin at the
-  top and discrimination is lost precisely where it matters most. Worth
-  reformulating to asymptote instead.
+### Saturation and blocking, fixed 27 July 2026
+
+**Saturation: fixed, and it raised peak precision.** The stepped distance score
+returned exactly 1 for anything within 5km, which combined with an exact date to
+pin 93,001 pairs at precisely 1.0, destroying all ranking at the one place ranking
+decides anything. Replaced with a continuous curve, `1/(1 + km/60)`, and weights
+that sum to 0.97 rather than 1.0 so nothing clamps.
+
+**A new signal came out of it: time of day.** UFOCAT carries a clock time on 82.9%
+of records, and it discriminates exactly where date and distance have both
+saturated. Two accounts of one event at 21:00 and 21:05 are a far better match
+than 21:00 and 04:00 on the same date, and those previously scored identically.
+
+A subtlety worth keeping: **a missing time counts as neutral (0.5), not absent.**
+The first version withheld the bonus, which ranked a pair seven hours apart
+*above* a pair with no times at all. Silence is uninformative; disagreement is
+evidence. The three cases now order correctly and the tests assert the ordering.
+
+| Cross-publication precision | before | after |
+|---|---|---|
+| >= 0.950 | 89.7% | **98.3%** (61,119 pairs) |
+| >= 0.900 | 80.7% | 94.6% (155,299) |
+| >= 0.850 | 75.3% | 86.1% |
+
+Previously precision fell off a cliff from 97.1% at exactly 1.0 to 89.7%; it now
+grades smoothly, and >= 95% precision is reachable on *all* pairs, which it never
+was. **`LINK` is 0.92, `SUGGEST` 0.65.** 0.92 is not arbitrary: maximum possible
+is 0.97, a pair agreeing perfectly but with no time on either side reaches 0.925,
+and one actively disagreeing on time tops out at 0.8935. So 0.92 is the only bar
+that admits the 17% without times while still rejecting time disagreement.
+
+**Blocking: improved from 94.4% to 95.2% reachable, not solved.** The diagnosis
+found 44% of the gap was structural: coordinate records blocked on grid cells,
+coordinate-less ones on place names, so the two populations could never meet.
+Emitting the name key for *every* record fixed that half, and also catches pairs
+where one record's coordinates are simply wrong (UFOCAT holds SANDWICH at both
+-1.339 and +1.34, 186km apart, one a sign error).
+
+Remaining gap, in order, with the honest reason each is left:
+
+| Cause | Pairs | Why not fixed |
+|---|---|---|
+| One has coordinates, the other not | 5,866 | **No longer structural.** These are pairs whose place names *also* differ (`CHEREPOVETS` vs `CHAROVSK`). Next lever is a `year\|county:` key: UFOCAT has COUNTY on 91.8% and county buckets stay small |
+| Sources disagree on the year | 3,485 | The date gate correctly refuses a pair twelve months apart. CUFOS linked these with case-specific knowledge; automating that trades a real gain for silent errors we cannot audit |
+| Coordinates over 200km apart | 2,285 | Mostly not duplicates at all. CHEREPOVETS and CHAROVSK, 127km apart on one day, are two events in a **wave**, which is a separate relation with its own table. Refusing to merge is correct |
+| Neither has coordinates, names differ | 1,907 | Little to work with |
+
+Note the validator reports a lower reachability (93.0%) than `block-diagnose`
+(95.2%) because the validator also skips blocks over 400 records. That difference
+is a harness sampling cap, not a blocking failure.
+
+**Also fixed:** `pairKey` in the validator had lost its separator to a stray
+`sed`, leaving null bytes in the file and, once naively stripped, concatenating
+ids so `"12"+"345"` and `"123"+"45"` would have collided. Caught before it
+corrupted a measurement.
 
 ### Police FOI, worldwide
 
