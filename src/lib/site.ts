@@ -53,9 +53,14 @@ export const SITE = {
   adsensePublisherId: "ca-pub-9915501600290498",
 } as const;
 
+/**
+ * Nav entries carry a dictionary key rather than a label, so a link cannot
+ * quietly stay English when the rest of the header changes language. The key is
+ * checked against the dictionary at build time by whoever renders it.
+ */
 export const NAV_LINKS = [
-  { href: "/cases", label: "Cases" },
-  { href: "/science", label: "Science" },
-  { href: "/browse", label: "Browse" },
-  { href: "/about", label: "About" },
+  { href: "/cases", key: "cases" },
+  { href: "/science", key: "science" },
+  { href: "/browse", key: "browse" },
+  { href: "/about", key: "about" },
 ] as const;

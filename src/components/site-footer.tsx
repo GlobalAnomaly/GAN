@@ -1,16 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/components/i18n-provider";
 import { SupportButton } from "@/components/support-button";
 import { SITE } from "@/lib/site";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
-const FOOTER_LINKS = [
-  { href: "/about", label: "About and our standards" },
-  { href: "/submit", label: "Send us something" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/takedown", label: "Takedown requests" },
-] as const;
+/**
+ * Same arrangement as the nav links: the href is fixed, the label is a
+ * dictionary key, so a footer link cannot be left in English by accident.
+ */
+const FOOTER_LINKS: { href: string; key: keyof Dictionary["footer"] }[] = [
+  { href: "/about", key: "about" },
+  { href: "/submit", key: "submit" },
+  { href: "/privacy", key: "privacy" },
+  { href: "/terms", key: "terms" },
+  { href: "/takedown", key: "takedown" },
+];
 
 export function SiteFooter() {
+  const { t } = useI18n();
+
   return (
     <footer className="border-t border-border">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -20,14 +30,11 @@ export function SiteFooter() {
               {SITE.name}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              An open archive. Every account is written from sourced material,
-              every claim is attributed, and what remains unknown is said
-              plainly.
+              {t.footer.tagline}
             </p>
 
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Free to read, and staying that way. If it is useful to you, you
-              can help cover what it costs to run.
+              {t.support.footerLead}
             </p>
             <div className="mt-3">
               <SupportButton variant="footer" />
@@ -41,18 +48,17 @@ export function SiteFooter() {
                 href={link.href}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                {link.label}
+                {t.footer[link.key]}
               </Link>
             ))}
           </nav>
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground">
-          Video remains hosted by its original platform and is embedded here
-          under each platform&apos;s player. Documents link to their source.
+          {t.footer.mediaNote}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Contact us at{" "}
+          {t.footer.contact}{" "}
           <a
             href={`mailto:${SITE.email}`}
             className="text-primary hover:underline"

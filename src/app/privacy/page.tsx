@@ -5,7 +5,8 @@ import { SITE } from "@/lib/site";
 
 /**
  * DRAFT. Written to describe the site as it actually is at launch: no
- * accounts, no ads, no analytics, no cookies beyond a theme preference.
+ * accounts, no ads, no analytics, and no cookies beyond two preferences the
+ * reader sets themselves, the theme and the reading language.
  *
  * It must be revised, and reviewed by a lawyer, before any of the following
  * are switched on: accounts, comments, newsletter, ads, uploads, analytics.
@@ -47,6 +48,13 @@ export default async function PrivacyPage() {
           Your theme choice, light or dark, kept in your browser&apos;s local
           storage so the site does not flip back every visit. It never leaves
           your device.
+        </p>
+        <p>
+          Your reading language, if you pick one, kept in a cookie named{" "}
+          <code>gan_lang</code> for a year. It holds nothing but the two letters
+          of the language, it is not read by anyone else, and it exists only
+          because you asked the site to remember. Clearing your cookies resets it
+          and nothing else is lost.
         </p>
 
         {ads_on && (
