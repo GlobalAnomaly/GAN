@@ -129,7 +129,7 @@ attractive pitch. **Worth a batch email.**
 
 | Source | Region | Note |
 |---|---|---|
-| **AFU** (Archives for the Unexplained) | Sweden | ✋ **Approach first.** An actual preservation institution, not a club. Preservation-minded bodies say yes to being mirrored and credited |
+| **AFU** (Archives for the Unexplained) | Nordic + 10 countries | ✋ **Approach first, and it is the largest prize on this list.** See the section below |
 | UFO-Sweden | Sweden | ✋ Linked to AFU |
 | NICAP historical archive | US | ✋ Major historical collection |
 | Project 1947 | US | ✋ Early-wave research |
@@ -155,12 +155,80 @@ attractive pitch. **Worth a batch email.**
 | Korean UFO organisations | South Korea | ✋ To be identified individually |
 | BETA-UFO | Indonesia | ✋ |
 
+### AFU: not one archive, an aggregator across ten countries
+
+Checked 27 July 2026 via [their report-files page](https://www.afu.se/collections/report-files/).
+Roughly **50,000+ cases**, an order of magnitude more than GEIPAN, and it closes
+the Nordic gap entirely.
+
+| Country | Holdings |
+|---|---|
+| Sweden | UFO-Sweden/AFU **20,000+ cases**, 17,000 in their ScanCat database |
+| Sweden | **Swedish Defence files, 3,000 reports, 1933 to present** |
+| Denmark | SUFOI, **12,000 cases from 1958** |
+| Norway | National Archives documents plus SUFOI Norwegian records |
+| Finland | Suomen Ufotutkijat plus Finnish National Archives microfilm |
+| UK | BUFORA, **10,000 digitised pages**, plus Contact International |
+| Spain | CEI, 120 large folders with cross-indexes |
+| Austria | Luis Schoenherr: 22 needle card files, 3,000+ CODAB records |
+| Russia | ~1,200 reports in 14 folders, Moscow 1993 |
+| US | Project Blue Book microfilms (~120), UFOCAT copies |
+| **Zimbabwe** | **Cynthia Hind's investigative files, digitised** |
+
+**Two entries matter more than their size suggests.**
+
+Cynthia Hind is the primary investigator behind **Ariel School**, already one of the
+nine seed cases. That is a direct upgrade to content we publish today, not a
+speculative addition.
+
+The **Swedish Defence files from 1933** are government records. They may be
+separately reachable through Sweden's public-access principle, which dates from
+1766 and is the oldest in the world, rather than through AFU's own terms.
+
+**Access is by request.** No public downloads and no copyright statement on that
+page, which from a preservation institution usually means "ask" rather than "no".
+**Each subdivision needs checking individually**: Norwegian National Archives
+material, Finnish National Archives microfilm and AFU's own holdings will not share
+one set of terms, and the government-sourced parts may be freer than the rest.
+
+Mostly text, which suits us: our value is written accounts, and text is what the
+bot reads to produce them.
+
 ## E. Acquired, in `UFO Data/`
 
 | Source | Holds | Status |
 |---|---|---|
-| **UFOCAT 2023** | 320,412 records, 238,499 cases, 91.7% coordinates, citation on every record, **36,424 hand-built same-event clusters** | ✋ Copyright CUFOS. Codebook requires **written permission to reproduce or publish extracted material**. Use freely, publish nothing extracted without asking. Drop LEVEL 0 and 1 (92 records), suppress names on LEVEL 2 |
+| **UFOCAT 2023** | 320,412 records, 238,499 cases, 91.7% coordinates, citation on every record, **36,424 hand-built same-event clusters** | ✋ **Purchase grants use, not publication.** A natural reading of "we bought it" is that it is ours to publish; the codebook says otherwise in as many words: "Permission to reproduce or publish material extracted from UFOCAT 2023 must be obtained in writing from the author or publisher." So: ingest, match, validate and research freely, and publish nothing extracted until CUFOS answers. This is why the loader refuses to set may_publish_facts. Also drop LEVEL 0 and 1 (92 records) and suppress names on LEVEL 2 |
 | **NUFORC set** | 147,890 records with full narratives, shape, duration, observers, characteristics, NUFORC's own `Explanation` | ⚠️ Terms forbid distribution and commercial exploitation. **Provenance unconfirmed** (supplied by NUFORC, or a third-party mirror?). Facts-only use makes this near-moot; still worth knowing |
+
+### Why NUFORC and GEIPAN are not the same problem
+
+Easy to collapse into one "they said no", and the difference decides what is
+possible with each.
+
+**NUFORC is US.** No EU database right applies, and *Feist* means the underlying
+facts genuinely carry no copyright. Their restriction bites on **how the data is
+obtained** (their terms forbid scraping and distribution) rather than on the facts
+themselves. So facts in, our own prose out, is a sound method there, and the
+remaining question is provenance of the copy we hold.
+
+**GEIPAN is French.** France implements the **sui generis database right**, which
+protects extraction of a substantial part of a database *even where the contents
+carry no copyright at all*. The facts-are-free argument therefore does not reach
+it. Same words on the tin, different law underneath.
+
+**How much GEIPAN would even add, measured rather than assumed.** UFOCAT already
+holds **10,864 French records**, 9,750 with coordinates, across 4,132 distinct
+locations, and **2,190 of them fall in 1977 or later**, which is GEIPAN's entire
+era. **389 of those records cite GEIPAN itself as their source**, so CUFOS already
+incorporated part of it. The rest comes through the published French literature:
+1,453 records from Vallee, 1,211 from *Lumieres Dans La Nuit*, 327 from Aime
+Michel, 254 from Poher.
+
+Against GEIPAN's 3,368 total cases, the marginal gain is far smaller than it looks.
+Their genuinely unique contribution is the official A/B/C/D disposition and the
+investigation files, and we do not want their classifications anyway: our
+classification is our own reasoning, shown so a reader can disagree with it.
 
 ## F. Public video platforms
 
