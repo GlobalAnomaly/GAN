@@ -118,6 +118,23 @@ async function main() {
 
   const { clusters, refused } = buildClusters(rows, [...links.values()]);
 
+  // Write BEFORE reporting. The first run of this script completed every
+  // expensive step, threw on a summary line, and discarded eleven minutes of work
+  // because the writes came last. Persist the result, then describe it.
+  writeFileSync(
+    OUT_CLUSTERS,
+    clusters.map((c) => JSON.stringify(c)).join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    OUT_SUGGESTIONS,
+    [...suggestions.values(), ...refused]
+      .map((p) => JSON.stringify(p))
+      .join("\n") + "\n",
+    "utf8",
+  );
+  console.log(`\nwrote ${OUT_CLUSTERS} and ${OUT_SUGGESTIONS}`);
+
   const multi = clusters.filter((c) => c.members.length > 1);
   const corroborated = clusters.filter((c) => c.source_count > 1);
 
@@ -141,7 +158,11 @@ async function main() {
         .map(([k, v]) => `${k}:${v.toLocaleString()}`)
         .join("  "),
   );
-  console.log(`largest cluster: ${Math.max(...clusters.map((c) => c.members.length))} reports`);
+  // Reduce, not Math.max(...spread). Spreading 255,763 arguments overflows the
+  // call stack, and it did: the run completed every expensive step and then threw
+  // on the summary line, before writing either output file.
+  const largest = clusters.reduce((m, c) => Math.max(m, c.members.length), 0);
+  console.log(`largest cluster: ${largest} reports`);
 
   const spans = multi.map((c) => c.span_km).sort((a, b) => a - b);
   if (spans.length) {
@@ -166,20 +187,6 @@ async function main() {
     );
   }
 
-  writeFileSync(
-    OUT_CLUSTERS,
-    clusters.map((c) => JSON.stringify(c)).join("\n") + "\n",
-    "utf8",
-  );
-  writeFileSync(
-    OUT_SUGGESTIONS,
-    [...suggestions.values(), ...refused]
-      .map((p) => JSON.stringify(p))
-      .join("\n") + "\n",
-    "utf8",
-  );
-
-  console.log(`\nwrote ${OUT_CLUSTERS} and ${OUT_SUGGESTIONS}`);
   console.log(`elapsed ${((Date.now() - started) / 1000).toFixed(1)}s`);
 }
 

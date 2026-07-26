@@ -939,6 +939,31 @@ Two decisions the tests pin down:
 - **`source_count` counts publications, not records.** Five rows from one database
   is not corroboration; three rows from three is. That distinction is the claim.
 
+### Two consequences of LINK = 0.92, found by running it
+
+Both fall out of the arithmetic rather than having been designed, so they are
+written down before they get mistaken for intent.
+
+**The drift guard is nearly inert at this threshold: 1 refusal in 144,245 links.**
+Work out what 0.92 demands. With date, name, time and shape all perfect the fixed
+part contributes 0.67, so `0.30 * place >= 0.25`, meaning `place >= 0.833`, and
+`1/(1 + km/60) >= 0.833` puts the pair **within about 12km**. A chain of 12km hops
+needs some twenty consecutive links to drift past 250km, and clusters that long do
+not occur. So the guard is cheap insurance, not an active filter.
+
+It becomes load-bearing the moment any of these change: the threshold drops, or a
+source arrives whose coordinates are geocoded to a city centroid across a wide
+metro area, or a wave-heavy dataset produces long chains of genuine near-misses.
+Keep it. Do not mistake the low count for the guard being unnecessary.
+
+**Reports without coordinates can never auto-link.** The name substitute caps
+`place` at 0.7, so the best a coordinate-less pair can score is
+`0.67 + 0.30 * 0.7 = 0.88`, below the 0.92 bar. Every such pair goes to human
+review instead. That is defensible and arguably right, since less evidence should
+mean a person decides, and it affects 8% of UFOCAT and more of the older material.
+But it was not a deliberate choice, and if the review queue ever needs shrinking,
+this is where a large slice of it comes from.
+
 ### The Supabase loader
 
 `scripts/ingest/load-supabase.ts`. Ready, but **migration 002 must be applied by
