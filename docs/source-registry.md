@@ -113,7 +113,52 @@ attractive pitch. **Worth a batch email.**
 | **UFOCAT 2023** | 320,412 records, 238,499 cases, 91.7% coordinates, citation on every record, **36,424 hand-built same-event clusters** | ✋ Copyright CUFOS. Codebook requires **written permission to reproduce or publish extracted material**. Use freely, publish nothing extracted without asking. Drop LEVEL 0 and 1 (92 records), suppress names on LEVEL 2 |
 | **NUFORC set** | 147,890 records with full narratives, shape, duration, observers, characteristics, NUFORC's own `Explanation` | ⚠️ Terms forbid distribution and commercial exploitation. **Provenance unconfirmed** (supplied by NUFORC, or a third-party mirror?). Facts-only use makes this near-moot; still worth knowing |
 
-## F. Reference and special cases
+## F. Public video platforms
+
+What people film daily and no authority ever acknowledges. Legitimate material,
+and **the highest-risk source on this entire list.** Everything below exists to
+make it usable without it costing us the credibility the rest is built on.
+
+| Platform | Discovery | Status |
+|---|---|---|
+| **YouTube** | Data API, **already built** (`src/lib/bot/youtube.ts`, quota accounting, `normalize-url.ts`, `has_captions` badge) | ✅ Channel walking at 1 unit per 50 videos, 10,000 units/day free. Search costs 100 per 50, so it is for finding channels, not videos |
+| **TikTok** | **Closed.** Research API is restricted to verified academic and public-interest institutions and explicitly closed to commercial users. No free commercial access to public data through official channels | ⚠️ **Embed-only.** oEmbed works for a URL we already have, so clips arrive by submission or by surfacing elsewhere, never by automated discovery |
+
+### Three risks specific to platform video
+
+**1. AI-generated video is now the default suspicion, not an edge case.** By 2026
+an anonymous clip with no named uploader and no corroboration has close to zero
+evidentiary value. A case built on something that later turns out to be generated
+is the single most damaging error this site could make, because it would confirm
+exactly what a sceptical reader already suspects about a UFO archive. Provenance
+before weight: a named account with history, an original upload rather than a
+repost, and ideally something outside the clip that agrees with it.
+
+**2. Reposts.** The same clip circulates across dozens of accounts, each looking
+like a fresh sighting. `normalize-url.ts` collapses URL *shapes*, not
+re-uploads, so it will not catch this. Perceptual hashing of frames is the real
+answer and is later work. Until then the cross-reference engine treats
+same-date-same-place video candidates as merge suspects, not new cases.
+
+**3. Clips die.** Accounts vanish, videos get removed, and a case whose only
+support was a dead embed silently becomes an unsupported claim. This is why the
+site embeds rather than re-hosts (creator keeps their work, we avoid the
+copyright question entirely) and why the rule below matters more here than
+anywhere else.
+
+### The rule
+
+**A clip alone never justifies a case.** It attaches to a case that already has
+independent grounding, or it waits in the queue. This is session 1's "merge, do
+not duplicate" doing its real job: a second Rendlesham video is another angle on
+an existing case, not a rival entry, and an anonymous clip of lights is not a
+case at all until something else supports it.
+
+Classification already has the right home for this material: `unverified`. With
+the derived media markers, "unverified plus has video" is exactly the *maybe*
+tier, and it needs no new field to express.
+
+## G. Reference and special cases
 
 | Source | Status | Note |
 |---|---|---|
@@ -125,7 +170,7 @@ attractive pitch. **Worth a batch email.**
 | Digital Vatican Library | ❓ | Celestial anomalies in ecclesiastical records. Images typically non-commercial. **Articles section only, never map pins.** See the retro-diagnosis guardrail in Work.md |
 | [Trove](https://trove.nla.gov.au/) | ❓ | Australian newspapers. Chronicling America's counterpart |
 
-## G. Do not use
+## H. Do not use
 
 | Source | Why |
 |---|---|
