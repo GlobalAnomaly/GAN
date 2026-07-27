@@ -691,6 +691,59 @@ or a highway would need OpenStreetMap extracts, which are ODbL and therefore
 share-alike. Worth thinking about before adopting rather than during. UFOCAT's
 `LOCATION` is overwhelmingly settlement names, so class `P` covers the bulk.
 
+### Shorts are a primary source, not an afterthought
+
+**Operator position, 27 July 2026.** Shorts carry most homemade raw footage. Long
+videos are usually compilations, which are useless for an individual archive
+because one entry cannot cite a reel of thirty unrelated clips. Long-form earns its
+place on well-documented cases instead: documentaries on Roswell, the 1952
+Washington flap, the Phoenix lights.
+
+Three things follow.
+
+**Multi-angle Shorts of one event are corroboration**, and that is the strongest
+case for the cross-reference engine applied to video: two people filming the same
+thing from different streets is exactly the independent confirmation the archive
+exists to show. **The honest problem is the matching signal.** A Short frequently
+carries no structured date and no place, only an upload date that trails the event
+by days and a title that may name nowhere. Perceptual hashing would catch the same
+clip reposted, which is a different job: reposts are duplicates, different angles
+are corroboration, and hashing cannot tell us the second thing. So multi-angle
+matching needs date and place parsed out of title and description, which is
+unreliable. Treat it as a genuine gap rather than a solved feature.
+
+**Official news Shorts are a different credibility tier.** NewsNation, Fox and
+similar posting Shorts is not the same act as an anonymous account posting one, and
+`SourceType` already has `news` beside `witness`. What is missing is a **channel
+registry** carrying that tier per channel, which is also what the relevance scoring
+at the top of the session 1 list needs in order to score anything.
+
+**Compilations should be detected and skipped.** Signals: long duration paired with
+title patterns ("top 10", "compilation", "best of", a year in a plural title).
+
+### Narration and captions: fixed and verified, 27 July 2026
+
+The operator's concern was that a clip asserting an alien craft is worse than
+useless to us. There was a real gap behind it. For a Short, the source material
+**is** the uploader's title and description, which is often itself the claim. The
+rules said to attribute claims to "named or described people", and an anonymous
+uploader is neither, so the model was left choosing between adopting the claim and
+inventing an attribution.
+
+`ABSOLUTE_RULES` in `prompts.ts` now states that a video's title, description and
+narration are the **uploader's claims rather than observations**, however
+confidently worded; that an anonymous account is attributed as anonymous; that a
+capitalised title asserting a craft is a claim about the footage and never evidence
+of it; and that what the footage SHOWS is separated from what anyone SAYS about it.
+
+**Verified against the worst realistic input** (`.tools/test-uploader-claim.ts`):
+an anonymous account, "ALIEN CRAFT OVER TEXAS!! 100% REAL NOT A DRONE", and a
+description full of certainty. The account written from it described "a light
+moving quickly across the night sky without making any noise" under what the
+footage shows, and put every claim under attribution: "The person who posted the
+footage states that it was 'definitely not any aircraft'". Zero bare assertions.
+The validator additionally caught Title Case in the headline.
+
 ### The standing enrichment rule
 
 **Operator decision, 27 July 2026.** For any case we write up, after clustering
