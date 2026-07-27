@@ -652,6 +652,45 @@ git config --global --add safe.directory 'D:/Git/Websites/Global Anomaly Network
 or taking ownership of `.git` back to the normal user. **Operator decision, not
 taken unilaterally**, since it edits global git config.
 
+### Geocoding from place descriptions
+
+Where a source gives a place but no coordinates, resolve the place. Scope is
+smaller than it sounds: **282,103 of 306,817 UFOCAT records already have
+coordinates**, so this targets the remaining ~24,700 plus Blue Book's 12,618.
+About 37,000 lookups, not 300,000.
+
+**Use an offline gazetteer, not a geocoding API.** Nominatim caps at one request
+per second and explicitly discourages bulk use; Google's terms forbid building a
+permanent database from their results. Neither survives 37,000 records, and both
+put a rate limit in the middle of a batch job.
+
+**[GeoNames](https://www.geonames.org/) is the right tool.** CC BY 4.0,
+downloadable dumps, roughly 12 million populated places with coordinates,
+alternate names in many languages, and an admin hierarchy. Free, offline,
+redistributable with attribution, and fast because it is a local lookup.
+
+**The hard part is disambiguation, not lookup.** "Springfield" matches dozens of
+US places. But UFOCAT gives country (99.7%), state (99.6%) and county (91.8%), so
+matching on name plus country plus admin1 resolves most of it, and county breaks
+the rest. GeoNames carries admin1 and admin2 codes for exactly this.
+
+**Every geocoded coordinate is `approximate`, without exception.** A city centroid
+is not where the event happened. That field already exists and the map already
+draws approximate pins with a halo, so this needs no new concept: it is the payoff
+from adding `coord_precision` alongside coordinates rather than after them.
+
+**A quality floor, and this is the part that matters editorially: refuse anything
+coarser than a settlement.** If all we can resolve is "Brazil", the centroid of
+Brazil is worse than no pin. It is wrong by hundreds of kilometres and looks
+exactly as confident as a pin we trust. So geocode to city, town or village level
+or better; below that the case keeps its "no coordinates" state and stays off the
+map while remaining in the list. GeoNames feature class `P` is the filter.
+
+**Street level is a later refinement.** GeoNames is weak on roads, so an address
+or a highway would need OpenStreetMap extracts, which are ODbL and therefore
+share-alike. Worth thinking about before adopting rather than during. UFOCAT's
+`LOCATION` is overwhelmingly settlement names, so class `P` covers the bulk.
+
 ### The standing enrichment rule
 
 **Operator decision, 27 July 2026.** For any case we write up, after clustering

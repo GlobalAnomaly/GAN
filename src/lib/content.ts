@@ -33,9 +33,15 @@ function warnOnce(name: string, error: unknown) {
   warned.add(name);
 
   const message = error instanceof Error ? error.message : String(error);
-  const missingTable = /schema cache|does not exist|relation .* does not/i.test(
-    message,
-  );
+
+  // A missing *column* and a missing *table* have different fixes, and telling
+  // someone to run schema.sql when the schema is already there sends them to
+  // check the one thing that is fine. "column cases.lat does not exist" means a
+  // migration has not been applied, not that the database is empty.
+  const missingColumn = /column .* does not exist/i.test(message);
+  const missingTable =
+    !missingColumn &&
+    /schema cache|does not exist|relation .* does not/i.test(message);
 
   console.warn(
     `\n[content] Supabase query "${name}" failed, serving seed content instead.` +
@@ -49,7 +55,12 @@ function warnOnce(name: string, error: unknown) {
       (missingTable
         ? "\n[content] The tables do not exist yet. Open the Supabase SQL editor" +
           "\n[content] and run supabase/schema.sql once.\n"
-        : "\n"),
+        : missingColumn
+          ? "\n[content] The table exists but is missing a column, so a migration" +
+            "\n[content] has not been applied. Run the files in" +
+            "\n[content] supabase/migrations/ in numerical order, in the Supabase" +
+            "\n[content] SQL editor. They are all safe to run twice.\n"
+          : "\n"),
   );
 }
 
