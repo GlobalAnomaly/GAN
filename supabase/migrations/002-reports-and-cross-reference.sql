@@ -70,7 +70,12 @@ create table if not exists event_clusters (
   id            uuid primary key default gen_random_uuid(),
 
   occurred_at   date,
-  date_precision date_precision not null default 'day',
+  -- text with a check, not an enum, because that is how schema.sql declares
+  -- date_precision on `cases` and the two must agree. Postgres has no
+  -- date_precision type to reference, which is what made an earlier version of
+  -- this migration fail outright.
+  date_precision text not null default 'day'
+    check (date_precision in ('day', 'month', 'year', 'unknown')),
   lat           double precision,
   lng           double precision,
   location_name text,
@@ -136,7 +141,12 @@ create table if not exists reports (
   cluster_id    uuid references event_clusters(id) on delete set null,
 
   occurred_at   date,
-  date_precision date_precision not null default 'day',
+  -- text with a check, not an enum, because that is how schema.sql declares
+  -- date_precision on `cases` and the two must agree. Postgres has no
+  -- date_precision type to reference, which is what made an earlier version of
+  -- this migration fail outright.
+  date_precision text not null default 'day'
+    check (date_precision in ('day', 'month', 'year', 'unknown')),
   -- Kept as written, because "summer 1974" and " E" are information about how
   -- well the date is known, and normalising them away discards that.
   occurred_raw  text,
