@@ -1,12 +1,121 @@
 # Work log
 
+**Session 2 ended: 27 July 2026, 13:28 (UTC+02:00)**
 **Session 1 ended: 26 July 2026, 08:47 (UTC+02:00)**
 
-Read this first in a new session to get up to speed. Everything below is
-committed and pushed to `github.com/GlobalAnomaly/GAN` on `main` (24 commits,
-working tree clean).
+Read this first in a new session. Session 2's summary is immediately below;
+session 1's state and the detailed session 2 notes follow it.
 
 ---
+
+# Session 2: what changed
+
+27 commits. 23 pushed and live; **4 still unpushed** at the time of writing.
+
+## Shipped and live on globalanomaly.info
+
+| | |
+|---|---|
+| **Interactive map** at `/map` | SVG from a vendored atlas, zoom and pan, clustering that dissolves as you zoom, hover bubbles on single pins only, filters for classification, continent, decade and a custom range |
+| **Rotating globe** on the home page | The way into the map. Pins occluded correctly on the far side |
+| **Four-language UI layer** | Cookie-backed locale, header language control, auto-detection from the browser. Chrome and badges only, see gaps below |
+| **Coffee link renamed** | "Support" read as a help desk on a nav bar |
+| **Backdrop on every page** | Was home-only |
+| **Privacy page corrected** | It claimed no cookies beyond the theme; the locale cookie made that false |
+
+## Built, not user-facing
+
+- **UFOCAT extracted**: 306,817 usable records from 320,412, coordinates on 92%.
+  Every encoding verified rather than assumed. See the extraction section below;
+  the longitude sign convention alone would have put every US pin in Asia.
+- **Cross-reference matcher**, thresholds measured against UFOCAT's 35,109
+  hand-built cases rather than guessed: 98.3% precision on cross-publication
+  pairs at 0.95.
+- **Clustering with a drift guard**: 255,763 clusters, of which **20,885 carry
+  corroboration from two or more publications**. Validated by the top clusters
+  coming out as Socorro, Pascagoula, Quarouble, Levelland, Valensole, Ashland,
+  Boianai and Chiles-Whitted, unprompted.
+- **Migrations 002 and 003 written and applied**, verified with `npm run db:check`.
+- **Overnight CLI** (`bot/run-overnight.ts`), because the admin panel's run dies
+  with the dev server and any file save restarts it.
+- **`bot/` typechecked for the first time** via `npm run typecheck:bot`. It was in
+  tsconfig's exclude, so the code that writes to production had no type checking.
+
+## The first overnight run, 27 July
+
+Config: 14 sources (5 channels, 2 searches, 7 video links), `--max-drafts 120`,
+`--no-translate`.
+
+| | |
+|---|---|
+| found | 357 |
+| queued | 354 |
+| drafted | 117 |
+| blocked by the validator | 3 |
+| failed | 0 |
+| quota used | **224 of 10,000** |
+
+Inbox now holds 397 items: 122 drafted, 255 still `new` (the ceiling stopped it),
+20 `failed`.
+
+**Two things to look at in that result.**
+
+**The media mix is backwards.** 318 long videos against 79 Shorts. The operator's
+position is that Shorts carry the raw homemade footage while long videos are mostly
+compilations, which are useless for an individual archive. So the run spent most of
+its night on the less useful half. Channel walking takes whatever a channel posts;
+getting the intended mix needs either Shorts-only sources or a duration filter.
+
+**Quota is not the constraint, and by a wide margin.** 224 units of 10,000 for a
+full night. The limit is model throughput at roughly three minutes a draft. Session
+1's quota arithmetic assumed the opposite.
+
+## Where the session ended
+
+**The operator was reviewing the drafts and expected to find things needing
+fixing.** That review is the natural starting point for session 3, and nothing
+about it is recorded here yet.
+
+## Known gaps, in the order they will hurt
+
+1. **Translation is deliberately parked.** The UI layer covers header, footer, nav,
+   badges and the language control. Page bodies, filter labels, science labels, the
+   search placeholder and card meta lines are still English, and `formatEventDate`
+   hardcodes `en-GB`. Filter labels are left for the shared filter bar (item 6) so
+   they are done once.
+2. **Two models installed, one used.** `llama3.1:8b` drafts; `gemma4:12b` is
+   stronger and more multilingual and the blueprint flags translation as where 8B
+   is weakest. Splitting draft from translate is small: `RunConfig` plus the runner.
+3. **Admin login** is a single shared password, local only. Supabase Auth for an
+   admin account is roughly an hour. **Public member accounts are a different
+   thing** and `AGENTS.md` requires the legal pages rewritten and lawyer-reviewed
+   before `accounts_on` flips.
+4. **Blue Book extractor and geocoder** are the path to real pins. GeoNames offline,
+   settlement level or no pin.
+5. **Relevance scoring and a channel registry**, which is what would have fixed the
+   media mix above.
+6. **Four emails unsent**: NUFORC (provenance and permission), CUFOS (UFOCAT),
+   CNES (GEIPAN), AFU (the largest archive on the list, and the source of the UFO
+   Newsclipping Service).
+
+## Operational notes
+
+- **Admin is local only.** `.data/inbox.json` is a local file and Ollama runs on
+  this machine, so the panel cannot work deployed. Do not set `ADMIN_PASSWORD` on
+  the host: the gate fails closed and that is correct.
+- **Next reads `.env.local` at server start.** A Fast Refresh will not pick up an
+  environment change, and the result looks identical to the variable being unset.
+- `npm run db:check` reports what actually landed in Supabase, including what the
+  anon key can see, which the service key cannot tell you.
+- `--plan` on the overnight CLI shows how every source line was read, and spends
+  nothing.
+
+---
+
+# Session 1: the foundation
+
+Kept because most of it still holds. Where session 2 changed something, the
+summary above says so.
 
 ## The site is live
 
@@ -18,8 +127,8 @@ indexed, mobile-verified.
 | Domain | globalanomaly.info, NameSilo, Vercel nameservers |
 | Hosting | Vercel free tier, auto-deploys on push to `main` |
 | Database | Supabase project `azcwmwgoxtmmcpadpkxp`, schema + migration 001 applied |
-| Content | 9 cases, 4 science entries, all published |
-| Admin | `localhost:3000/admin`, password-gated, local only |
+| Content | 9 cases, 4 science entries, all published. **Session 2 added coordinates to all nine** |
+| Admin | `localhost:3000/admin`, password-gated, **local only and it must stay that way**: see the operational notes above |
 | Ollama | Running locally, `llama3.1:8b` default, `gemma4:12b` also installed |
 | YouTube API | Key set and verified working |
 
@@ -165,10 +274,16 @@ than none. Needs a real decision, and the blueprint starred it for a lawyer.
 
 ---
 
+# Session 2: the detail
+
+Everything below is the working record of session 2: the analysis, the decisions
+and the reasoning behind them. The summary at the top of this file is the short
+version. Read this when you need to know *why* something is the way it is.
+
 ## Session 2 planning (26 July 2026)
 
-The roadmap in "Next session starts here" below is still valid but no longer
-first. What follows supersedes its ordering.
+The roadmap in "Next session starts here" further down is still valid but no
+longer first. What follows supersedes its ordering.
 
 ### Reported broken
 
@@ -1287,7 +1402,10 @@ case updates.
 
 ---
 
-## Next session starts here
+## Session 1's original roadmap
+
+Superseded by the "Revised order of work" above, and kept because the reasoning
+in each item still stands. Items 1 to 4 here remain undone.
 
 ### 1. Relevance scoring and exclusions — the blocker
 
