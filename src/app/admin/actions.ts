@@ -58,9 +58,23 @@ export async function signIn(_prev: unknown, formData: FormData) {
   const next = String(formData.get("next") ?? "/admin");
 
   if (!process.env.ADMIN_PASSWORD) {
+    // Two different situations, and the old message only described one of them.
+    // On a deployed site it told the reader to edit .env.local, which is
+    // gitignored, never deployed, and cannot possibly help there. Worse, doing
+    // the equivalent in the host's dashboard would produce a panel that looks
+    // functional and silently does nothing: the review inbox is a JSON file on
+    // the local disk and Ollama runs on the operator's machine.
+    const deployed = process.env.NODE_ENV === "production" && !!process.env.VERCEL;
+
     return {
-      error:
-        "ADMIN_PASSWORD is not set. Add it to .env.local and restart the server.",
+      error: deployed
+        ? "The admin panel only runs on the machine that holds the bot. It cannot " +
+          "work here: the review inbox is a local file and the model runs locally, " +
+          "so it stays closed on the deployed site by design. Use it at " +
+          "localhost:3000/admin instead."
+        : "ADMIN_PASSWORD is not set, or the server started before it was. Add it " +
+          "to .env.local, then stop and restart npm run dev: a Fast Refresh will " +
+          "not pick up a change to the environment.",
     };
   }
 
