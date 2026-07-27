@@ -327,6 +327,25 @@ const PRECISION_RANK: Record<DatePrecision, number> = {
 };
 
 /**
+ * How much a tier is trusted to know when something happened.
+ *
+ * Not a judgement of honesty. An uploader knows exactly when they posted a
+ * video and frequently puts that date in the title, which is a real date about
+ * the wrong thing.
+ */
+const TIER_RANK: Record<SourceTier, number> = {
+  official: 4,
+  reference: 3,
+  press: 2,
+  uploader: 1,
+  anonymous: 0,
+};
+
+function bestTier(fact: Fact): number {
+  return Math.max(0, ...fact.sources.map((s) => TIER_RANK[s.tier] ?? 0));
+}
+
+/**
  * The best supported event date.
  *
  * Ranked by how many sources agree, then by precision, then by the earliest.
@@ -354,6 +373,14 @@ export function consensusDate(
   const best = [...dated].sort((a, b) => {
     const bySources = corroboration(b) - corroboration(a);
     if (bySources !== 0) return bySources;
+
+    // Tier before precision, and the Rendlesham cluster is why. A podcast
+    // episode titled "December 24, 2023 - #1027" yields a day-precise date
+    // that is the episode's date, not the event's. Wikipedia gives December
+    // 1980, which is correct and less precise. Ranking on precision alone
+    // published the podcast's own release date as the date of a 1980 event.
+    const byTier = bestTier(b) - bestTier(a);
+    if (byTier !== 0) return byTier;
 
     const byPrecision =
       PRECISION_RANK[b.precision ?? "unknown"] -
