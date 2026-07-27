@@ -415,3 +415,53 @@ test("an invented continent falls back to unknown", () => {
   assert.equal(normalizeDraft(draft({ continent: "atlantis" })).continent, "unknown");
   assert.equal(normalizeDraft(draft({ continent: "europe" })).continent, "europe");
 });
+
+test("a month-precision date plus an unknown exact date is not a contradiction", () => {
+  // From the first live AARO draft. Both halves are true and saying both is
+  // better than saying either alone.
+  const result = validateAccount(
+    draft({
+      date_of_event: "2018-12-01",
+      date_precision: "month",
+      body_unknown:
+        "AARO publishes the imagery without the sensor type, the platform, the exact date or the reporting unit.",
+    }),
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "unknowns-contradict"));
+});
+
+test("but claiming a day and calling the exact date unknown still contradicts", () => {
+  const result = validateAccount(
+    draft({
+      date_of_event: "2018-12-04",
+      date_precision: "day",
+      body_unknown: "The exact date of the event is unknown and nothing establishes it.",
+    }),
+  );
+
+  assert.ok(result.errors.some((e) => e.rule === "unknowns-contradict"));
+});
+
+test("the dossier's own bracket annotations must not reach the prose", () => {
+  // Straight from the first live AARO draft.
+  const result = validateAccount(
+    draft({
+      body_footage:
+        "AARO describes the released footage as showing a distant unified aerial object [single source: All-domain Anomaly Resolution Office (AARO)].",
+    }),
+  );
+
+  assert.ok(result.errors.some((e) => e.rule === "scaffolding-leak"));
+});
+
+test("attribution written as an English sentence is fine", () => {
+  const result = validateAccount(
+    draft({
+      body_footage:
+        "AARO describes the released footage as showing a distant unified aerial object moving steadily across the sky.",
+    }),
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "scaffolding-leak"));
+});

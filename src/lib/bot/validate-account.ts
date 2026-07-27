@@ -576,8 +576,12 @@ function checkUnknownsAgree(account: DraftAccount, findings: Finding[]) {
   const sentences = unknown.split(/[.;]/).filter((s) => s.trim());
   const NEGATED = /\b(unknown|not known|unclear|not established|undetermined|has not been determined)\b/;
 
-  const contradicts = (subject: RegExp, mention: string | null) =>
-    sentences.some((sentence) => {
+  const contradicts = (
+    subject: RegExp,
+    mention: string | null,
+    within: string[] = sentences,
+  ) =>
+    within.some((sentence) => {
       if (!subject.test(sentence) || !NEGATED.test(sentence)) return false;
       // Naming the thing in the same breath is not a contradiction. "The
       // exact address within Las Vegas is unknown" is a precise and useful
@@ -595,10 +599,20 @@ function checkUnknownsAgree(account: DraftAccount, findings: Finding[]) {
     });
   }
 
+  // Precision matters here, and the first live AARO draft is why. It dated the
+  // Mt. Etna footage to December 2018 at month precision and said AARO does
+  // not publish the exact date. Both are true, and saying so is better than
+  // either alone. So a sentence about an "exact" or "precise" date only
+  // contradicts a date we claim to know to the day.
+  const exactOnly = /\b(exact|precise|specific)\b/;
+  const dateSentences = sentences.filter(
+    (s) => account.date_precision === "day" || !exactOnly.test(s),
+  );
+
   if (
     account.date_of_event &&
     account.date_precision !== "unknown" &&
-    contradicts(/\b(date|when)\b/, account.date_of_event.slice(0, 4))
+    contradicts(/\b(date|when)\b/, account.date_of_event.slice(0, 4), dateSentences)
   ) {
     findings.push({
       severity: "error",
@@ -619,6 +633,48 @@ function checkUnknownsAgree(account: DraftAccount, findings: Finding[]) {
       message:
         "A relative date phrase appears in the account. The reader has no reference point for it, so name the year.",
     });
+  }
+}
+
+/**
+ * Our own scaffolding, copied into the prose.
+ *
+ * The dossier annotates each fact with its sourcing, in square brackets, so
+ * the model can weigh a corroborated fact against a lone anonymous one. A
+ * small model sometimes copies that annotation straight through into the
+ * account. The first live AARO draft ended a sentence with "[single source:
+ * All-domain Anomaly Resolution Office (AARO)]", which would have published
+ * exactly as written.
+ *
+ * Attribution belongs in the sentence, in English, which the editorial rules
+ * already require. It does not belong in brackets borrowed from a prompt.
+ */
+const SCAFFOLDING = [
+  /\[single source:/i,
+  /\[confirmed independently by/i,
+  /\[stated by/i,
+  /DOSSIER (BEGINS|ENDS)/i,
+  /\(nothing established\)/i,
+  /NOTHING IN THE MATERIAL DESCRIBES/i,
+];
+
+function checkNoScaffolding(account: DraftAccount, findings: Finding[]) {
+  for (const [field, value] of Object.entries(account)) {
+    if (typeof value !== "string") continue;
+    for (const pattern of SCAFFOLDING) {
+      const match = pattern.exec(value);
+      if (!match) continue;
+      findings.push({
+        severity: "error",
+        rule: "scaffolding-leak",
+        field,
+        message:
+          "The dossier's own annotation was copied into the prose. Attribute the " +
+          "claim in a sentence instead.",
+        excerpt: value.slice(Math.max(0, match.index - 40), match.index + 60).trim(),
+      });
+      break;
+    }
   }
 }
 
@@ -652,6 +708,7 @@ export function validateAccount(
   checkHeadline(account, findings);
   checkAttribution(account, findings);
   checkUnknownsAgree(account, findings);
+  checkNoScaffolding(account, findings);
   checkClassificationConsistency(account, options.classification, findings);
 
   if (options.dossier) {
