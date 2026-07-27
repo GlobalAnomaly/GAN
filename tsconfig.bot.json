@@ -1,0 +1,13 @@
+{
+  // The bot scripts are excluded from the main tsconfig so the Next build does
+  // not try to compile CLI entry points. The side effect was that they were
+  // never typechecked at all: the code that writes to the production database
+  // was the only code in the repo with no type checking, and it stayed that way
+  // long enough for a call to a zero-argument function with one argument to pass
+  // unnoticed.
+  //
+  // This config exists only to check them. Run with: npm run typecheck:bot
+  "extends": "./tsconfig.json",
+  "include": ["bot/**/*.ts", "scripts/**/*.ts", "src/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

@@ -489,10 +489,36 @@ class Run {
   }
 }
 
-export async function startRun(config: RunConfig): Promise<{ error?: string }> {
+/**
+ * Sets a run up and hands it back unstarted.
+ *
+ * Shared by the two callers because they need opposite things from it. A web
+ * action must return immediately or the request times out; a terminal command
+ * must wait or the process exits and takes the run with it.
+ */
+async function prepare(
+  config: RunConfig,
+  { force = false }: { force?: boolean } = {},
+): Promise<{ error?: string; run?: Run }> {
   const existing = await getRunState();
-  if (isRunning(existing) && active) {
-    return { error: "A run is already going. Stop it before starting another." };
+
+  // `active` is process memory, so a state file saying "fetching" with no
+  // `active` beside it means the previous run died with its process: a dev
+  // server restart, a crash, or a closed terminal. That is a stale record
+  // rather than a live run, and refusing to start because of it would leave the
+  // bot permanently blocked by a file.
+  if (isRunning(existing)) {
+    if (active) {
+      return { error: "A run is already going. Stop it before starting another." };
+    }
+    if (!force) {
+      return {
+        error:
+          `The state file says a run is in progress (started ${existing.started_at ?? "unknown"}), ` +
+          "but no run is executing in this process, so it died with whatever " +
+          "started it. Pass --force to discard that record and start fresh.",
+      };
+    }
   }
 
   if (config.sources.length === 0) {
@@ -518,9 +544,37 @@ export async function startRun(config: RunConfig): Promise<{ error?: string }> {
     ],
   });
 
-  // Deliberately not awaited: the action returns immediately and the run
-  // continues in the background for as long as the server is up.
-  void run.execute();
+  return { run };
+}
 
+/**
+ * Fire and forget, for the admin panel.
+ *
+ * The run outlives the request but not the server: saving any file in dev
+ * restarts Next and kills it mid-flight. For an unattended overnight run use
+ * `runToCompletion` from a terminal instead.
+ */
+export async function startRun(config: RunConfig): Promise<{ error?: string }> {
+  const { error, run } = await prepare(config);
+  if (error || !run) return { error };
+
+  void run.execute();
   return {};
+}
+
+/**
+ * Runs to the end and resolves when it is done, for the CLI.
+ *
+ * This is the one to use overnight. It owns its own process, so it does not care
+ * what the dev server is doing, and nothing restarts it when a file is saved.
+ */
+export async function runToCompletion(
+  config: RunConfig,
+  opts: { force?: boolean } = {},
+): Promise<{ error?: string; state?: RunState }> {
+  const { error, run } = await prepare(config, opts);
+  if (error || !run) return { error };
+
+  await run.execute();
+  return { state: await getRunState() };
 }

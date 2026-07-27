@@ -11,6 +11,8 @@
     "bot:import-seed": "tsx --env-file-if-exists=.env.local bot/import-seed.ts",
     "bot:write": "tsx --env-file-if-exists=.env.local bot/write-account.ts",
     "db:check": "tsx --env-file-if-exists=.env.local scripts/check-db.ts",
+    "typecheck:bot": "tsc --noEmit -p tsconfig.bot.json",
+    "bot:overnight": "tsx --env-file-if-exists=.env.local bot/run-overnight.ts",
     "bot:test": "node --import tsx --test src/lib/**/*.test.ts src/lib/*.test.ts"
   },
   "dependencies": {

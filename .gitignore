@@ -69,3 +69,7 @@ bot/.cache/
 # watches this directory tree. The entry stays so that pointing Docker back here
 # by accident cannot put a 5GB vhdx in front of git.
 /Docker/
+
+# The real source list for overnight runs. bot/channels.example.txt is the
+# template; the working copy is yours and changes weekly.
+/bot/channels.txt
