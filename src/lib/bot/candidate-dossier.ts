@@ -30,7 +30,7 @@ import {
   type Dossier,
   type DossierSource,
 } from "@/lib/bot/dossier";
-import { resolveDates } from "@/lib/bot/relative-dates";
+import { bestDate, resolveDates } from "@/lib/bot/relative-dates";
 
 /**
  * Lines that are channel furniture rather than material about the event.
@@ -212,20 +212,39 @@ export function dossierFromCandidate(
   }
 
   // Dates, resolved in code, with the derivation attached.
-  for (const date of resolveDates(
+  //
+  // One source establishes one event date, so only the best reading is kept.
+  // The UFO Seekers description on the Las Vegas case lists two meteor shower
+  // peaks and a comet designation, and taking every date found put 6 May, 10
+  // May and 1983 into the dossier as candidate event dates. `bestDate` prefers
+  // a stated date over a derived one and a precise one over a vague one, which
+  // picks the 04/30/23 in the title over all of that.
+  const dates = resolveDates(
     [candidate.title, cleaned.text, ...cleaned.chapters, spoken].join("\n"),
     candidate.published_at,
-  )) {
+  );
+  const best = bestDate(dates);
+
+  if (best) {
     addFact(dossier, {
       kind: "event_date",
-      statement: date.derived
-        ? `A date of ${date.value} is implied by ${date.basis}.`
-        : `The material gives the date as ${date.basis}.`,
-      value: date.value,
-      precision: date.precision,
+      statement: best.derived
+        ? `A date of ${best.value} is implied by ${best.basis}.`
+        : `The material gives the date as ${best.basis}.`,
+      value: best.value,
+      precision: best.precision,
       attributed_to: uploaderLabel,
       sources: [source],
     });
+  }
+
+  if (dates.length > 1) {
+    addUnresolved(
+      dossier,
+      `The material mentions ${dates.length} different dates (${dates
+        .map((d) => d.value)
+        .join(", ")}). Only the best supported one is used above, so the date is worth checking by hand.`,
+    );
   }
 
   // The record itself, which is a fact about the video and not about the event.

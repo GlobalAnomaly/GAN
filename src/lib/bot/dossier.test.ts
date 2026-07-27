@@ -12,6 +12,7 @@ import {
   groundingText,
   hasFootageDescription,
   isClaimOnly,
+  mergeDossiers,
   renderForPrompt,
   summarise,
   type DossierSource,
@@ -331,4 +332,87 @@ test("grounding text carries the facts but not the prompt scaffolding", () => {
   // our own scaffolding would count as a source for the model's prose.
   assert.doesNotMatch(text, /DOSSIER BEGINS/);
   assert.doesNotMatch(text, /nothing established/);
+});
+
+// ---------------------------------------------------------------------------
+// Merging, which is where corroboration actually appears
+// ---------------------------------------------------------------------------
+
+test("merging clustered records turns separate dates into one corroborated fact", () => {
+  // The real failure: four videos of the Las Vegas 2023 case were drafted
+  // separately, three of them never learned the date, and a fourth carried
+  // "around midnight on April 30" in its description all along.
+  const a = createDossier("kens 5");
+  addFact(a, {
+    kind: "event_date",
+    statement: "Around midnight on 30 April 2023.",
+    value: "2023-04-30",
+    precision: "day",
+    sources: [kens5],
+  });
+
+  const b = createDossier("ufo seekers");
+  addFact(b, {
+    kind: "event_date",
+    statement: "The title gives the date as 04/30/23.",
+    value: "2023-04-30",
+    precision: "day",
+    sources: [{ name: "UFO Seekers", tier: "uploader" }],
+  });
+
+  const c = createDossier("newsnation");
+  addFact(c, {
+    kind: "claim",
+    statement: "A family called 911 about nonhuman beings.",
+    sources: [newsnation],
+  });
+
+  const merged = mergeDossiers("Las Vegas 2023", [a, b, c]);
+  const date = consensusDate(merged);
+
+  assert.equal(date?.value, "2023-04-30");
+  assert.equal(date?.precision, "day");
+  assert.equal(date?.sources, 2, "two separate publications, which is the claim");
+  assert.equal(summarise(merged).sources, 3);
+});
+
+test("sources that disagree both survive the merge", () => {
+  // The archive's job is to show that the sources disagree, not to pick one.
+  const a = createDossier("a");
+  addFact(a, {
+    kind: "claim",
+    statement: "The caller described the beings as about eight feet tall.",
+    sources: [kens5],
+  });
+  const b = createDossier("b");
+  addFact(b, {
+    kind: "claim",
+    statement: "The caller described the beings as about ten feet tall.",
+    sources: [newsnation],
+  });
+
+  assert.equal(mergeDossiers("x", [a, b]).facts.length, 2);
+});
+
+test("a question one source could not answer closes if another answered it", () => {
+  const unknown = createDossier("a");
+  addUnresolved(
+    unknown,
+    "Nobody has described what is visible in this footage. The title and description are the uploader's claims about it, not an account of it.",
+  );
+
+  const described = createDossier("b");
+  addFact(described, {
+    kind: "footage",
+    statement: "The report describes an object crossing the sensor field.",
+    sources: [aaro],
+  });
+
+  const merged = mergeDossiers("x", [unknown, described]);
+  assert.equal(hasFootageDescription(merged), true);
+  assert.equal(
+    merged.unresolved.length,
+    0,
+    "leaving it open would say we do not know something we do",
+  );
 });

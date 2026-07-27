@@ -238,6 +238,40 @@ export function dossierFromDocument(
   return dossier;
 }
 
+/**
+ * Combines the dossiers of records judged to describe one event.
+ *
+ * This is where corroboration actually appears. Four videos of the Las Vegas
+ * 2023 case were drafted separately and three of them never learned the date,
+ * while a fourth carried "around midnight on April 30" in its description. Fed
+ * through here, that date arrives as one fact carrying every source that
+ * asserted it, and `addFact` does the counting.
+ *
+ * Nothing is invented by merging and nothing is discarded. Where two sources
+ * disagree, both statements survive as separate facts, because the archive's
+ * job is to show that the sources disagree rather than to pick a winner.
+ */
+export function mergeDossiers(subject: string, parts: Dossier[]): Dossier {
+  const merged = createDossier(subject);
+
+  for (const part of parts) {
+    for (const fact of part.facts) addFact(merged, fact);
+    for (const media of part.media) addMedia(merged, media);
+    for (const question of part.unresolved) addUnresolved(merged, question);
+  }
+
+  // A question one source could not answer is not open if another answered it.
+  // Leaving it in would tell the reader we do not know something we do.
+  merged.unresolved = merged.unresolved.filter((question) => {
+    if (/described what is visible/i.test(question)) {
+      return !hasFootageDescription(merged);
+    }
+    return true;
+  });
+
+  return merged;
+}
+
 export function addMedia(dossier: Dossier, media: DossierMedia): Dossier {
   if (!dossier.media.some((m) => m.url === media.url)) dossier.media.push(media);
   return dossier;
