@@ -34,6 +34,7 @@ import {
   type DossierSource,
 } from "@/lib/bot/dossier";
 import { bestDate, resolveDates } from "@/lib/bot/relative-dates";
+import { SUPPORT_SOURCES, supportSourcesFor, type RecordContext } from "@/lib/bot/sources";
 import {
   candidatePlaceNames,
   findArticle,
@@ -50,6 +51,14 @@ export interface EnrichmentReport {
   facts_added: number;
   /** Lookups attempted, so the cost of this stage is visible in the run log. */
   lookups: number;
+  /**
+   * Support sources the registry selected for this record, and the ones it
+   * ruled out. Recorded because "we did not check the 1920s newspapers" and
+   * "the 1920s newspapers do not cover 2023" are different statements, and a
+   * reviewer wondering why a case is thin deserves the second one.
+   */
+  sources_selected: string[];
+  sources_out_of_scope: string[];
 }
 
 export interface EnrichOptions {
@@ -57,6 +66,12 @@ export interface EnrichOptions {
   fetcher?: Fetcher;
   /** Cap on lookups per cluster, because this is the slowest stage. */
   maxLookups?: number;
+  /**
+   * What the record is, so the registry can pick sources that could actually
+   * help. Asking Chronicling America about a 2023 sighting is a guaranteed
+   * miss that still costs a request and a delay.
+   */
+  record?: RecordContext;
 }
 
 function wikipediaSource(page: WikipediaPage): DossierSource {
@@ -84,7 +99,14 @@ export async function enrichDossier(
   text: string,
   options: EnrichOptions = {},
 ): Promise<EnrichmentReport> {
-  const { fetcher, maxLookups = 12 } = options;
+  const { fetcher, maxLookups = 12, record } = options;
+
+  // The registry decides what is worth asking. With no record context every
+  // unbounded source applies, which is the honest default: we cannot rule
+  // anything out without knowing when or where.
+  const context: RecordContext = record ?? { occurred_at: null, country: null };
+  const selected = supportSourcesFor(context);
+  const selectedIds = new Set(selected.map((s) => s.id));
 
   const report: EnrichmentReport = {
     places_tried: [],
@@ -92,6 +114,8 @@ export async function enrichDossier(
     article_found: null,
     facts_added: 0,
     lookups: 0,
+    sources_selected: [...selectedIds],
+    sources_out_of_scope: SUPPORT_SOURCES.filter((s) => !selectedIds.has(s.id)).map((s) => s.id),
   };
 
   // Checks before spending rather than after, so the reported count is the
@@ -108,7 +132,7 @@ export async function enrichDossier(
   // cluster still had after merging: every title said "Las Vegas" and nothing
   // had ever established it as a place rather than as words in a title.
 
-  if (factsOfKind(dossier, "location").length === 0) {
+  if (selectedIds.has("wikipedia") && factsOfKind(dossier, "location").length === 0) {
     for (const name of candidatePlaceNames(text)) {
       if (!spend()) break;
       report.places_tried.push(name);
@@ -181,7 +205,7 @@ export async function enrichDossier(
 
   if (shortest) queries.push(shortest.split(" ").slice(0, 6).join(" "));
 
-  {
+  if (selectedIds.has("wikipedia")) {
     let article: WikipediaPage | null = null;
 
     for (const attempt of [...new Set(queries)].slice(0, 3)) {

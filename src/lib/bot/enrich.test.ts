@@ -161,3 +161,28 @@ test("a failing lookup does not take the run down with it", async () => {
 test("the network is never touched in these tests", () => {
   assert.ok(calls > 0, "the injected fetcher was used");
 });
+
+test("the registry decides which support sources apply to a record", async () => {
+  const dossier = createDossier("x");
+  const report = await enrichDossier(dossier, "Las Vegas alien sighting", {
+    fetcher,
+    record: { occurred_at: "2023-04-30", country: "US" },
+  });
+
+  assert.ok(report.sources_selected.includes("gdelt"), "2023 is in GDELT's period");
+  assert.ok(
+    report.sources_out_of_scope.includes("chronicling-america"),
+    "which stops in 1963",
+  );
+});
+
+test("a 1947 case selects the newspaper archive instead", async () => {
+  const dossier = createDossier("x");
+  const report = await enrichDossier(dossier, "Roswell New Mexico", {
+    fetcher,
+    record: { occurred_at: "1947-07-08", country: "US" },
+  });
+
+  assert.ok(report.sources_selected.includes("chronicling-america"));
+  assert.ok(report.sources_out_of_scope.includes("gdelt"));
+});
