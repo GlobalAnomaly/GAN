@@ -12,6 +12,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "", priority: 1 },
     { path: "/cases", priority: 0.9 },
     { path: "/science", priority: 0.9 },
+    // The routes here are listed by hand, so a new page is invisible to search
+    // until someone remembers to add it. The map was, briefly.
+    { path: "/map", priority: 0.8 },
     { path: "/browse", priority: 0.7 },
     { path: "/about", priority: 0.6 },
     { path: "/privacy", priority: 0.2 },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { CaseCardCell } from "@/components/case-card";
+import { GlobeTeaser } from "@/components/globe-teaser";
 import { ScienceCard } from "@/components/science-card";
 import { ScrollStrip } from "@/components/scroll-strip";
 import { SearchBox } from "@/components/search-box";
@@ -10,18 +11,29 @@ import {
   getArchiveCounts,
   getLatestCases,
   getRotatingCases,
+  listCases,
   listScience,
 } from "@/lib/content";
 import { CONTINENT_LABELS, CONTINENT_ORDER } from "@/lib/labels";
 
 export default async function Home() {
-  const [counts, latest, rotating, acknowledged, science] = await Promise.all([
+  const [counts, latest, rotating, acknowledged, science, allCases] = await Promise.all([
     getArchiveCounts(),
     getLatestCases(10),
     getRotatingCases(10),
     getAcknowledgedCases(3),
     listScience(),
+    // The globe wants every case with a coordinate, which no other strip needs.
+    listCases(),
   ]);
+
+  const globePins = allCases
+    .filter((c) => c.lat !== null && c.lng !== null)
+    .map((c) => ({
+      lat: c.lat as number,
+      lng: c.lng as number,
+      classification: c.classification,
+    }));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -112,6 +124,14 @@ export default async function Home() {
         <div className="mt-6">
           <ScrollStrip items={rotating} />
         </div>
+      </section>
+
+      <section className="mt-16 rounded-xl border border-border bg-card/40 p-6 sm:p-8">
+        <GlobeTeaser
+          pins={globePins}
+          caseCount={counts.cases}
+          countryCount={counts.byCountry.length}
+        />
       </section>
 
       <section className="mt-16">

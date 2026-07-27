@@ -4,6 +4,7 @@ import {
   clusterPins,
   decades,
   matchesFilters,
+  greatCircleDegrees,
   type Pin,
 } from "@/lib/map/pins";
 
@@ -171,5 +172,64 @@ test("every decade in the range is present, with none skipped", () => {
   const years = out.map((d) => Number(d.label.slice(0, 4)));
   for (let i = 1; i < years.length; i++) {
     assert.equal(years[i] - years[i - 1], 10);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Globe occlusion
+// ---------------------------------------------------------------------------
+
+/**
+ * The globe's occlusion test. Orthographic projection returns a point for every
+ * coordinate, including those on the far side of the sphere, so without this the
+ * back of the globe shows through as ghost pins that should be hidden.
+ */
+
+test("a point facing the viewer is zero degrees away", () => {
+  assert.equal(greatCircleDegrees([0, 0], [0, 0]), 0);
+});
+
+test("the antipode is 180 degrees away, so it is hidden", () => {
+  const d = greatCircleDegrees([0, 0], [180, 0]);
+  assert.ok(d > 179.9, `expected ~180, got ${d}`);
+});
+
+test("a quarter turn of longitude sits exactly on the limb", () => {
+  // 90 degrees is the boundary: at or beyond it, a pin is not drawn.
+  const d = greatCircleDegrees([0, 0], [90, 0]);
+  assert.ok(Math.abs(d - 90) < 0.001, `expected 90, got ${d}`);
+});
+
+test("the poles are 90 degrees from any point on the equator", () => {
+  assert.ok(Math.abs(greatCircleDegrees([0, 0], [0, 90]) - 90) < 0.001);
+  assert.ok(Math.abs(greatCircleDegrees([137, 0], [0, -90]) - 90) < 0.001);
+});
+
+test("it is symmetric", () => {
+  const a: [number, number] = [1.44, 52.08];   // Rendlesham
+  const b: [number, number] = [-45.43, -21.56]; // Varginha
+  assert.ok(
+    Math.abs(greatCircleDegrees(a, b) - greatCircleDegrees(b, a)) < 1e-9,
+  );
+});
+
+test("Rendlesham and Varginha cannot both be fully lit from one side", () => {
+  // A real check that the filter does something: these two are far enough apart
+  // that facing one pushes the other toward or past the limb.
+  const d = greatCircleDegrees([1.44, 52.08], [-45.43, -21.56]);
+  assert.ok(d > 74, `expected beyond the fade threshold, got ${d}`);
+});
+
+test("nearby places stay comfortably visible together", () => {
+  // Rendlesham and Petit-Rechain, the pair that clusters on the flat map.
+  const d = greatCircleDegrees([1.44, 52.08], [5.84, 50.59]);
+  assert.ok(d < 5, `expected a few degrees, got ${d}`);
+});
+
+test("a rounding overshoot cannot produce NaN", () => {
+  // acos of anything above 1 is NaN, and floating point makes that reachable
+  // for identical or near-identical points. The clamp is what prevents it.
+  for (const p of [[0, 90], [0, -90], [179.999, 0]] as [number, number][]) {
+    assert.ok(Number.isFinite(greatCircleDegrees(p, p)), `NaN at ${p}`);
   }
 });

@@ -183,3 +183,22 @@ export function toPins(
 
   return pins;
 }
+
+/**
+ * Angular distance in degrees between two points on the sphere.
+ *
+ * Used only to decide whether a pin is on the near side. Beyond 90 degrees from
+ * the point facing the viewer, it is behind the globe.
+ */
+export function greatCircleDegrees(
+  [lngA, latA]: [number, number],
+  [lngB, latB]: [number, number],
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const cos =
+    Math.sin(toRad(latA)) * Math.sin(toRad(latB)) +
+    Math.cos(toRad(latA)) *
+      Math.cos(toRad(latB)) *
+      Math.cos(toRad(lngB - lngA));
+  return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+}
