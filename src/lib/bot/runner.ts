@@ -48,6 +48,7 @@ import {
 import { validateAccount, validateTranslation } from "@/lib/bot/validate-account";
 import {
   QuotaTracker,
+  getVideoDetails,
   listChannelUploads,
   resolveChannelId,
   searchVideos,
@@ -57,7 +58,13 @@ import {
 const STATE_PATH = resolve(process.cwd(), ".data/run.json");
 
 export interface RunSource {
-  type: "channel" | "search";
+  /**
+   * `video` is a single pasted link, and it exists because it is the obvious
+   * thing to put in a source list. Without it a URL fell through to `search`,
+   * which sent the whole link to YouTube as literal search text: 100 units each
+   * and nothing useful back. `videos.list` costs 1.
+   */
+  type: "channel" | "search" | "video";
   value: string;
   max: number;
 }
@@ -261,6 +268,18 @@ class Run {
             since: config.since ? `${config.since}T00:00:00Z` : undefined,
             max: source.max,
           });
+        } else if (source.type === "video") {
+          const normalized = normalizeUrl(source.value);
+          if (normalized.platform !== "youtube" || !normalized.videoId) {
+            await this.log("warn", `Not a YouTube video link: ${source.value}`);
+            continue;
+          }
+          videos = await getVideoDetails([normalized.videoId], { apiKey, quota });
+          if (videos.length === 0) {
+            // Deleted, private, or region-blocked. Worth saying which link,
+            // because a silent skip in a list of thirty is invisible.
+            await this.log("warn", `YouTube returned nothing for ${source.value}`);
+          }
         } else {
           videos = await searchVideos(source.value, {
             apiKey,

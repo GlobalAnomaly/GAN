@@ -28,6 +28,7 @@
  *   --model NAME        Ollama model (default from OLLAMA_MODEL)
  *   --no-translate      skip the translation stage, which is most of the time
  *   --force             discard a stale "running" record and start anyway
+ *   --plan              print how every line was read, then stop. Spends nothing
  */
 
 import { readFile } from "node:fs/promises";
@@ -63,14 +64,25 @@ function clamp(v: unknown, lo: number, hi: number, fallback: number): number {
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
 }
 
-/** Same rule as the admin form: "@" or "UC" is a channel, anything else is a search. */
+/**
+ * What a line in the source list means.
+ *
+ * A URL is a single video, checked first because it is the cheapest thing to get
+ * wrong: falling through to `search` sends the whole link to YouTube as literal
+ * search text, costs 100 units, and returns nothing. `videos.list` costs 1.
+ */
 function toSource(line: string, max: number): RunSource {
   const value = line.trim();
-  return {
-    type: value.startsWith("@") || value.startsWith("UC") ? "channel" : "search",
-    value,
-    max,
-  };
+
+  if (/^https?:\/\//i.test(value) || /^(www\.)?(youtube\.com|youtu\.be)\//i.test(value)) {
+    return { type: "video", value, max: 1 };
+  }
+
+  if (value.startsWith("@") || value.startsWith("UC")) {
+    return { type: "channel", value, max };
+  }
+
+  return { type: "search", value, max };
 }
 
 async function collectSources(max: number): Promise<RunSource[]> {
@@ -106,6 +118,38 @@ async function main() {
     return;
   }
 
+  const byType = {
+    channel: sources.filter((s) => s.type === "channel").length,
+    search: sources.filter((s) => s.type === "search").length,
+    video: sources.filter((s) => s.type === "video").length,
+  };
+  // Searches are a hundred times the cost of everything else, so the projected
+  // spend is shown up front. Discovering it in the morning is too late.
+  const projected =
+    byType.search * 100 + byType.video * 1 + byType.channel * (1 + Math.ceil(perSource / 50));
+
+  console.log("Overnight run");
+  console.log(
+    `  sources     ${sources.length}  ` +
+      `(${byType.channel} channel, ${byType.search} search, ${byType.video} video)`,
+  );
+  console.log(`  quota est.  ~${projected} of 10000 units${byType.search ? `, ${byType.search * 100} of it from searches` : ""}`);
+
+  // Every source, labelled, because "did I write my list correctly" is the
+  // question this file gets asked most and it should be answerable without
+  // spending anything. A URL misread as a search costs 100 units and returns
+  // nothing, and that is invisible in a list of thirty lines.
+  for (const src of sources) {
+    console.log(`    ${src.type.padEnd(7)} ${src.value}`);
+  }
+
+  if (has("plan")) {
+    console.log("\n--plan given, so stopping here. Nothing fetched, nothing spent.");
+    return;
+  }
+
+  console.log("");
+
   const model = arg("model") ?? DEFAULT_MODEL;
 
   // Two checks, because they fail differently and the difference is what you
@@ -140,8 +184,6 @@ async function main() {
 
   const translate = !has("no-translate");
 
-  console.log("Overnight run");
-  console.log(`  sources     ${sources.length}`);
   console.log(`  per source  ${perSource}`);
   console.log(`  max drafts  ${maxDrafts}`);
   console.log(`  model       ${model}`);
