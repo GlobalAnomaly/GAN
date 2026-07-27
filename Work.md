@@ -693,6 +693,40 @@ written case from a database row, and no competitor does it.
 will dominate the time budget for any case it runs on. That is the trade, and it
 was made deliberately: accuracy and primary sourcing over volume.
 
+### Press archives, and the disclosure hearings
+
+Full triage of ~37 press and record archives in `docs/source-registry.md`, section
+G2. Two findings changed the plan.
+
+**The coverage gap.** Free full-text newspaper archives are mostly **pre-1963**:
+Chronicling America stops there, European archives open pre-1900s and restrict
+newer, Nordic legal-deposit archives keep in-copyright material on-site. UFOCAT is
+densest **1970s to 1990s**. So general newspaper archives help least exactly where
+we hold most material.
+
+**The [UFO Newsclipping Service](https://archive.org/details/UFO_Newsclipping_Service_1978_12_no_113)
+closes that gap.** 1970 to 2009, ~470 monthly issues, ~20 pages each, OCR'd and
+searchable. About 9,400 pages of press clippings across precisely the decades the
+national archives miss, UFO-specific. **Uploaded by AFU**, which makes them the most
+valuable contact on the list twice over. Clipping copyright stays with the papers, so
+the finding-aid rule applies: it names the paper and date, we cite the paper.
+
+**US disclosure hearings are the cleanest source found this session.** The 26 July
+2023 House Oversight hearing (Grusch, Graves, Fravor): official GPO transcript on
+congress.gov, **public domain**; video on Wikimedia Commons, freely licensed;
+govinfo has an API. Sworn testimony, named witnesses, current, and unusually suited
+to the editorial rules, since "Grusch testified under oath that..." needs no hedging
+and "what this does not establish" writes itself. **Best opening material for the
+articles section.**
+
+**Only a handful have APIs**, and that decides where to spend effort: Chronicling
+America, Trove, GDELT (current news, not historical), Internet Archive and Wayback,
+govinfo, Gallica, Europeana, Arquivo.pt. Everything else is manual lookup for
+flagship cases, and two are paid (RetroNews, British Newspaper Archive).
+
+One useful side effect: the Wayback CDX API is also **the fix for the dead-embed
+problem** recorded under platform video.
+
 ### Enrichment research from date + place
 
 Gated behind the relevance scoring, always. It cannot run across 238,499 cases;

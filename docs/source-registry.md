@@ -354,6 +354,77 @@ tier, and it needs no new field to express.
 | Digital Vatican Library | ❓ | Celestial anomalies in ecclesiastical records. Images typically non-commercial. **Articles section only, never map pins.** See the retro-diagnosis guardrail in Work.md |
 | [Trove](https://trove.nla.gov.au/) | ❓ | Australian newspapers. Chronicling America's counterpart |
 
+## G2. Press and record archives, for enrichment
+
+Not sources of cases. Sources of **corroboration** for a case we are writing: what
+the local paper said the next morning, what a hearing transcript records, what a
+document shows.
+
+**The coverage problem, stated first because it shapes everything.** Free full-text
+newspaper archives are mostly **pre-1963**. Chronicling America stops there,
+European archives typically open pre-1900s and restrict anything newer, and Nordic
+legal-deposit archives confine in-copyright material to on-site terminals. UFOCAT is
+densest in the **1970s to 1990s**. So general newspaper archives help least exactly
+where we hold most material.
+
+### The two that matter most
+
+**[UFO Newsclipping Service](https://archive.org/details/UFO_Newsclipping_Service_1978_12_no_113)
+(Internet Archive) closes that gap precisely.** Issues from **1970 (no. 10) to 2009
+(no. 476)**, roughly 470 monthly compilations at ~20 pages each, **OCR'd and
+full-text searchable**. About 9,400 pages of press clippings across the exact
+decades the national archives do not reach, and UFO-specific rather than needing a
+general corpus searched. **Uploaded by AFU**, which makes them the most valuable
+contact on this list twice over.
+
+*Caveat:* it is a clipping service, so the clippings carry newspaper copyright.
+Finding-aid rule applies: it tells us which paper covered what on which date, and we
+cite that paper.
+
+**US congressional disclosure hearings: the cleanest source found so far.** The
+26 July 2023 House Oversight hearing (Grusch, Graves, Fravor), the most-watched
+congressional UAP hearing on record.
+
+- Official transcript: [congress.gov](https://www.congress.gov/118/meeting/house/116282/documents/HHRG-118-GO06-Transcript-20230726.pdf), via the **US Government Publishing Office, public domain**
+- Further hearing record: [CHRG-118hhrg57440](https://www.congress.gov/118/chrg/CHRG-118hhrg57440/CHRG-118hhrg57440.pdf)
+- Video: [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:2023_House_Oversight_and_Accountability_Hearing_on_UAP_%E2%80%93_Unidentified_Anomalous_Phenomena_%E2%80%93_Implications_on_National_Security,_Public_Safety,_and_Government_Transparency.webm), freely licensed
+- **govinfo has an API**
+
+Public domain transcript, free video, sworn testimony, named witnesses, current. The
+strongest opening material for the **articles** section, and it fits the editorial
+rules unusually well: "Grusch testified under oath that..." needs no hedging, and
+"what this does not establish" writes itself.
+
+### Triage: what a pipeline can actually use
+
+| Has an API, build for it | Covers |
+|---|---|
+| Chronicling America | US to 1963, public domain |
+| Trove | Australia, generous era |
+| GDELT | Global **current** news, not a historical archive. Free via BigQuery |
+| Internet Archive / Wayback (CDX API) | Everything, and **the fix for our dead-embed problem** |
+| govinfo | Congressional records, public domain |
+| Gallica, Europeana, Arquivo.pt | France, EU aggregate, Portuguese web archive |
+
+| Manual or restricted | Note |
+|---|---|
+| RetroNews, British Newspaper Archive | **Paid** |
+| Mediestream (DK), Svenska tidningar (SE) | In-copyright material on-site only |
+| ANNO (AT), BelgicaPress, Deutsches Zeitungsportal, BNE (ES), BNP (PT), e-newspaperarchives.ch | Free, no bulk API. Good for flagship lookups |
+| Papers Past (NZ), NewspaperSG (SG), Korean Newspaper Archive, National Diet Library (JP) | Regional, mostly manual |
+| Hemeroteca Digital Brasileira, Hemeroteca Nacional Digital de Mexico | Pairs with Portuguese and Spanish |
+| South Asia Open Archives, National Archives of India, LoC regional guides, National Library of South Africa, British Library EAP, Open Global Press Archive | Thin for this subject, but **Africa and India are our biggest geographic holes** |
+| Media Cloud | Research platform, API but registration-gated, media-analysis oriented |
+| Internet Archive TV News | Closed captions, 2009 onward. Unique for recent events |
+
+**Era-to-archive mapping, which is how the enrichment step should choose:**
+
+- 1890s to 1920s waves: most European and Australian archives are open
+- 1947 to 1963: Chronicling America, Trove
+- **1970 to 2009: UFO Newsclipping Service**, and little else that is free
+- 2009 onward: Internet Archive TV News, GDELT
+- Any era, US official: govinfo, NARA, CIA, FBI Vault
+
 ## H. Do not use
 
 | Source | Why |
