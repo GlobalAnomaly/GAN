@@ -51,6 +51,9 @@ const seed: SeedCase[] = [
     continent: "europe",
     country: "United Kingdom",
     location_unknown: false,
+    lat: 52.0797,
+    lng: 1.4406,
+    coord_precision: "exact",
     classification: "acknowledged",
     classification_reason:
       "The Ministry of Defence released its own file on the reports and offered no conventional explanation for them.",
@@ -102,6 +105,9 @@ const seed: SeedCase[] = [
     continent: "north_america",
     country: "United States",
     location_unknown: false,
+    lat: 32.0,
+    lng: -119.5,
+    coord_precision: "approximate",
     classification: "acknowledged",
     classification_reason:
       "The Department of Defense released the footage, confirmed it as authentic, and has not offered a conventional explanation.",
@@ -159,6 +165,9 @@ const seed: SeedCase[] = [
     continent: "europe",
     country: "France",
     location_unknown: false,
+    lat: 43.5033,
+    lng: 6.4869,
+    coord_precision: "exact",
     classification: "acknowledged",
     classification_reason:
       "An official government unit investigated the case, published its file, and classified it as unexplained.",
@@ -209,6 +218,9 @@ const seed: SeedCase[] = [
     continent: "asia",
     country: "Iran",
     location_unknown: false,
+    lat: 35.6892,
+    lng: 51.389,
+    coord_precision: "exact",
     classification: "acknowledged",
     classification_reason:
       "A declassified US government intelligence report documents the encounter and offers no conventional explanation.",
@@ -267,6 +279,9 @@ const seed: SeedCase[] = [
     continent: "south_america",
     country: "Brazil",
     location_unknown: false,
+    lat: -21.5556,
+    lng: -45.4306,
+    coord_precision: "exact",
     classification: "unverified",
     classification_reason:
       "Multiple named witnesses, but no official validation, no document, and no physical evidence.",
@@ -307,6 +322,9 @@ const seed: SeedCase[] = [
     continent: "africa",
     country: "Zimbabwe",
     location_unknown: false,
+    lat: -17.8897,
+    lng: 31.2447,
+    coord_precision: "exact",
     classification: "unverified",
     classification_reason:
       "A large number of consistent witnesses interviewed promptly, but no official validation and no physical evidence.",
@@ -347,6 +365,9 @@ const seed: SeedCase[] = [
     continent: "oceania",
     country: "Australia",
     location_unknown: false,
+    lat: -37.9333,
+    lng: 145.1333,
+    coord_precision: "exact",
     classification: "unverified",
     classification_reason:
       "A large group of daytime witnesses, but no official file, no imagery, and no instrument data.",
@@ -390,6 +411,9 @@ const seed: SeedCase[] = [
     continent: "north_america",
     country: "United States",
     location_unknown: false,
+    lat: 33.4484,
+    lng: -112.074,
+    coord_precision: "approximate",
     classification: "likely_explained",
     classification_reason:
       "The widely filmed later event is accounted for by confirmed military flare drops. The earlier formation is not explained, and the label reflects the material most people have seen.",
@@ -438,6 +462,9 @@ const seed: SeedCase[] = [
     continent: "europe",
     country: "Belgium",
     location_unknown: false,
+    lat: 50.5906,
+    lng: 5.8397,
+    coord_precision: "exact",
     classification: "debunked",
     classification_reason:
       "The photographer publicly stated he fabricated the object and described how he did it.",

@@ -66,6 +66,18 @@ export type ScienceStatus =
 /** How precisely the event date is actually known. */
 export type DatePrecision = "day" | "month" | "year" | "unknown";
 
+/**
+ * How precisely the location is known, which is not the same question as whether
+ * we have coordinates.
+ *
+ * `date_precision` exists so a case known only to a year never renders as
+ * 1 January. Coordinates need the same honesty. "Pacific Ocean, off southern
+ * California" and "Phoenix and across Arizona" are areas, and dropping a precise
+ * dot on either claims a precision no source gave us. The map draws approximate
+ * locations differently, so the reader can see which is which.
+ */
+export type CoordPrecision = "exact" | "approximate";
+
 export interface CaseMedia {
   id: string;
   type: MediaType;
@@ -128,6 +140,11 @@ export interface CaseRecord {
   continent: Continent;
   country: string | null;
   location_unknown: boolean;
+
+  /** Null when we have no coordinate. A case is not obliged to be mappable. */
+  lat: number | null;
+  lng: number | null;
+  coord_precision: CoordPrecision;
 
   classification: Classification;
   classification_reason: string;
@@ -217,6 +234,11 @@ export interface CaseSummary
     | "date_of_event"
     | "date_precision"
     | "view_count"
+    // The map reads cards, so coordinates belong on the summary shape rather
+    // than forcing a second query per pin.
+    | "lat"
+    | "lng"
+    | "coord_precision"
   > {
   primary_media: CaseMedia | null;
 }

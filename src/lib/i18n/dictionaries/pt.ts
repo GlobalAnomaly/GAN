@@ -9,6 +9,7 @@ export const pt: Dictionary = {
   nav: {
     cases: "Casos",
     science: "Ciência",
+    map: "Mapa",
     browse: "Explorar",
     about: "Sobre",
     search: "Pesquisa",

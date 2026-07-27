@@ -24,7 +24,7 @@ import type {
 /** Columns needed for a card, so list queries do not drag whole bodies over. */
 const SUMMARY_COLUMNS =
   "id, title, slug, summary, classification, continent, country, location_name, " +
-  "date_of_event, date_precision, view_count, media(*)";
+  "date_of_event, date_precision, view_count, lat, lng, coord_precision, media(*)";
 
 const FULL_CASE_COLUMNS =
   "*, media(*), documents(*), sources(*), case_tags(tags(*))";
@@ -87,6 +87,10 @@ function toSummary(row: Row): CaseSummary {
     date_precision:
       (row.date_precision as CaseSummary["date_precision"]) ?? "day",
     view_count: Number(row.view_count ?? 0),
+    lat: row.lat === null || row.lat === undefined ? null : Number(row.lat),
+    lng: row.lng === null || row.lng === undefined ? null : Number(row.lng),
+    coord_precision:
+      (row.coord_precision as CaseSummary["coord_precision"]) ?? "exact",
     primary_media: (media[0] as unknown as CaseSummary["primary_media"]) ?? null,
   };
 }

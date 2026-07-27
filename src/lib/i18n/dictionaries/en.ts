@@ -15,6 +15,7 @@ export const en = {
   nav: {
     cases: "Cases",
     science: "Science",
+    map: "Map",
     browse: "Browse",
     about: "About",
     search: "Search",

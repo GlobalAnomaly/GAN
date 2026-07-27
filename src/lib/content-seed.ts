@@ -49,6 +49,9 @@ function toSummary(c: CaseRecord): CaseSummary {
     date_of_event: c.date_of_event,
     date_precision: c.date_precision,
     view_count: c.view_count,
+    lat: c.lat,
+    lng: c.lng,
+    coord_precision: c.coord_precision,
     primary_media:
       c.media.find((m) => m.role === "primary") ?? c.media[0] ?? null,
   };

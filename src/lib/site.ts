@@ -60,6 +60,7 @@ export const SITE = {
  */
 export const NAV_LINKS = [
   { href: "/cases", key: "cases" },
+  { href: "/map", key: "map" },
   { href: "/science", key: "science" },
   { href: "/browse", key: "browse" },
   { href: "/about", key: "about" },

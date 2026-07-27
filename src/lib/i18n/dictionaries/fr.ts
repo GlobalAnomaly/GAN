@@ -8,6 +8,7 @@ export const fr: Dictionary = {
   nav: {
     cases: "Cas",
     science: "Science",
+    map: "Carte",
     browse: "Parcourir",
     about: "À propos",
     search: "Recherche",
