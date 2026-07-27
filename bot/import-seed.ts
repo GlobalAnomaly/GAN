@@ -73,6 +73,12 @@ async function importCases() {
           continent: c.continent,
           country: c.country,
           location_unknown: c.location_unknown,
+          // Added when the map arrived. Without these the importer upserts
+          // happily, reports success, and leaves every case unmappable, which
+          // looks like a broken map rather than a missing field.
+          lat: c.lat,
+          lng: c.lng,
+          coord_precision: c.coord_precision,
           classification: c.classification,
           classification_reason: c.classification_reason,
           published: c.published,
