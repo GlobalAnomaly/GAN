@@ -12,6 +12,11 @@
  */
 
 import { objectSchema } from "@/lib/bot/ollama";
+import {
+  hasFootageDescription,
+  renderForPrompt,
+  type Dossier,
+} from "@/lib/bot/dossier";
 
 export type Lang = "fr" | "pt" | "es";
 
@@ -25,7 +30,7 @@ export const LANG_NAMES: Record<Lang, string> = {
 const ABSOLUTE_RULES = `Absolute rules:
 - Include only (a) what the evidence observably shows and (b) what named or described people claim, always attributed. Never state a UFO claim as fact in your own voice.
 - Never invent details not present in the source: object shape, material, size, altitude, time, witness count, or location. If a detail is absent, place it under "what remains unknown".
-- Where an ESTABLISHED FACTS block is provided, treat those facts as part of the source. They are verified, so use them: do not write that a date or place is unknown when the block states it. Everything outside the source material and that block is still unknown, and you must never fill a gap from your own knowledge.
+- The dossier's facts are established and sourced, so use them: do not write that a date or place is unknown when the dossier states it. Everything outside the dossier is unknown, and you must never fill a gap from your own knowledge.
 - A video's title, description and any narration are the UPLOADER'S claims, not observations, however confidently they are worded. Write "the person who posted the footage states..." or "the uploader describes...", never the claim on its own. An anonymous account is attributed as anonymous. A title in capitals, or one asserting the object is a craft, alien, or military, is a claim about the footage and never evidence of it.
 - Separate what the footage SHOWS from what anyone SAYS about it. A clip showing a light moving across a night sky shows exactly that, whatever the caption calls it.
 - Quote only short, load-bearing phrases that carry a fact or specific; attribute every quote. Cut anything kept for drama.
@@ -52,28 +57,6 @@ export interface SourceMaterial {
   reference?: string;
 }
 
-function sourceBlock(source: SourceMaterial): string {
-  const known = [
-    source.knownTitle && `Known title: ${source.knownTitle}`,
-    source.knownDate && `Known publication date: ${source.knownDate}`,
-    source.knownLocation && `Stated location: ${source.knownLocation}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  return `SOURCE: ${source.sourceName}${source.sourceUrl ? ` (${source.sourceUrl})` : ""}
-${known ? `${known}\n` : ""}
-SOURCE MATERIAL BEGINS
-${source.text}
-SOURCE MATERIAL ENDS${
-    source.reference
-      ? `
-
-${source.reference}`
-      : ""
-  }`;
-}
-
 export interface DraftAccount {
   headline: string;
   summary: string;
@@ -88,31 +71,123 @@ export interface DraftAccount {
   date_precision: "day" | "month" | "year" | "unknown";
 }
 
-export function draftAccountPrompt(source: SourceMaterial): string {
-  return `You are an editorial assistant for a neutral UFO/UAP archive. From the source material provided, write a single case account in the fixed structure below. You are a reporter relaying information, not an advocate.
+/**
+ * The drafting prompt, which now receives a dossier and nothing else.
+ *
+ * The change from raw metadata is not cosmetic. Previously the model got a
+ * YouTube title and description and was asked what the footage showed, a
+ * question that material cannot answer, so it answered from the stereotype of
+ * a UFO video. Now the dossier states plainly when nobody has described the
+ * footage, and the instruction below tells the model exactly what to write in
+ * that case. An absence with a prescribed response is followable; an absence
+ * with none is an invitation to be helpful.
+ */
+export function draftAccountPrompt(dossier: Dossier): string {
+  const noFootage = !hasFootageDescription(dossier);
+
+  return `You are an editorial assistant for a neutral UFO/UAP archive. Write a single case account in the fixed structure below, using ONLY the dossier provided. You are a reporter relaying information, not an advocate.
 
 ${ABSOLUTE_RULES}
 
-If the source is thin, keep the account short and let "what remains unknown" carry the gaps. Never pad.
+THE DOSSIER IS YOUR ONLY SOURCE. It lists what has actually been established and who established it. If something is not in the dossier, you do not know it, and neither does the archive. Do not supply it from your own knowledge, however confident you are, and do not reason your way to it.
 
-${sourceBlock(source)}
+An empty section is a correct answer. An entry with no date, no place and nothing known about the footage is a complete and honest entry. Padding it is the one thing you must not do.
+
+Each fact is marked with how many independent sources assert it. A fact confirmed by several sources may be stated more plainly than one resting on a single anonymous upload. Never present a single-source claim as though it were settled.
+
+${noFootage ? `IMPORTANT: nobody has described this footage. For "body_footage" you must write that the material available does not describe what the footage shows, and that the archive has not independently reviewed it. Do NOT describe lights, objects, shapes, craft, the sky, or anything else visual. You have not seen it and neither has any source here.\n` : ""}
+${renderForPrompt(dossier)}
 
 Return JSON with exactly these keys:
 {
-  "headline": "plain, descriptive, sentence case, no hype. Names the observable and the location if known.",
+  "headline": "plain, descriptive, sentence case, no hype. Names what is actually established. Must NOT reuse or lightly reword the video's own title: that is the uploader's wording, and often their sales pitch.",
   "summary": "one or two sentences for a card. Same rules.",
-  "body_footage": "what the footage or record observably shows. Description only, no interpretation.",
-  "body_testimony": "what witnesses and officials say, attributed. Credentials shown, not asserted.",
+  "body_footage": "what the material states is visibly in the footage, from a source that saw it. If the dossier does not establish this, say so plainly and stop.",
+  "body_testimony": "what witnesses and officials claim, attributed to whoever claimed it. Credentials shown, not asserted.",
   "body_status": "what any authority confirmed or denied, instrument or radar data, corroboration or its absence.",
-  "body_unknown": "the explicit gaps: location, date, object identity, whether it has been analysed. Never leave this empty.",
-  "location_name": "place name, or null if the source does not give one",
+  "body_unknown": "the explicit gaps, including every question the dossier lists as unanswered. Never leave this empty, and never contradict a field you have filled: if you give a location, do not also call the location unknown.",
+  "location_name": "place name, or null if the dossier does not establish one",
   "country": "country, or null",
   "continent": "one of: north_america, south_america, africa, europe, asia, oceania, unknown",
-  "date_of_event": "YYYY-MM-DD, or null if the source does not establish it",
+  "date_of_event": "YYYY-MM-DD, or null if the dossier does not establish it",
   "date_precision": "one of: day, month, year, unknown"
 }
 
-If the source only establishes a year, set date_of_event to YYYY-01-01 and date_precision to "year". Never present a guessed day as exact.`;
+Use the date the dossier gives, at the precision it gives. If it establishes only a year, set date_of_event to YYYY-01-01 and date_precision to "year". Never present a guessed day as exact, and never compute a date yourself: the dossier has already done that arithmetic and shown its working.`;
+}
+
+const CONTINENTS = new Set([
+  "north_america", "south_america", "africa", "europe", "asia", "oceania",
+  "unknown",
+]);
+
+const NULLISH = new Set(["", "null", "none", "n/a", "na", "unknown", "not known", "undefined"]);
+
+/**
+ * Coerces a raw model response into the types the rest of the code assumes.
+ *
+ * Ollama's structured output enforces the shape, not the meaning, and every
+ * field in DRAFT_SCHEMA is declared a string because that is what the schema
+ * language gives us. So a model with nothing to report writes the four
+ * characters "null" and they arrive as text, which is truthy, non-empty and
+ * renders on a page as the word null. The first overnight run produced 25
+ * accounts whose location was the string "null", 27 with that country and 24
+ * with that date, and nothing anywhere noticed.
+ *
+ * Dates are the other half. The schema cannot say "ISO date", so one draft
+ * carried "2024-04 (year only)" in a column the database expects to parse.
+ * Anything unsalvageable becomes null with precision "unknown", which is a
+ * correct answer, rather than being passed along to fail somewhere later.
+ */
+export function normalizeDraft(account: DraftAccount): DraftAccount {
+  const clean = (value: string | null): string | null => {
+    const text = String(value ?? "").trim();
+    return NULLISH.has(text.toLowerCase()) ? null : text;
+  };
+
+  let date = clean(account.date_of_event);
+  let precision = account.date_precision;
+
+  if (date) {
+    const full = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+    const month = /^(\d{4})-(\d{2})$/.exec(date);
+    const year = /^(\d{4})$/.exec(date);
+
+    if (full) {
+      date = `${full[1]}-${full[2]}-${full[3]}`;
+    } else if (month) {
+      date = `${month[1]}-${month[2]}-01`;
+      precision = "month";
+    } else if (year) {
+      date = `${year[1]}-01-01`;
+      precision = "year";
+    } else {
+      // Salvage a leading year from prose such as "2024-04 (year only)", and
+      // drop the precision to match what we can actually stand behind.
+      const loose = /(\d{4})(?:-(\d{2}))?/.exec(date);
+      if (loose) {
+        date = `${loose[1]}-${loose[2] ?? "01"}-01`;
+        precision = loose[2] ? "month" : "year";
+      } else {
+        date = null;
+        precision = "unknown";
+      }
+    }
+  }
+
+  if (!date) precision = "unknown";
+  if (!["day", "month", "year", "unknown"].includes(precision)) precision = "unknown";
+
+  const continent = CONTINENTS.has(account.continent) ? account.continent : "unknown";
+
+  return {
+    ...account,
+    location_name: clean(account.location_name),
+    country: clean(account.country),
+    date_of_event: date,
+    date_precision: precision,
+    continent,
+  };
 }
 
 export interface ClassificationResult {
@@ -126,7 +201,7 @@ export interface ClassificationResult {
 
 export function classifyPrompt(
   account: DraftAccount,
-  source: SourceMaterial,
+  dossier: Dossier,
 ): string {
   return `You are classifying a UFO/UAP case for a neutral archive, using fixed criteria. Apply the criteria to the evidence, not to how interesting the case is.
 
@@ -139,7 +214,9 @@ CRITERIA:
 When two labels both fit, choose the more conservative one and say why in the reason.
 Do not use em dashes. Write the reason as one plain sentence.
 
-${sourceBlock(source)}
+"unverified" is the honest label for most material and carries no stigma. Do not reach for a stronger one to make the entry feel more finished.
+
+${renderForPrompt(dossier)}
 
 THE ACCOUNT AS DRAFTED:
 Headline: ${account.headline}

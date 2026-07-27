@@ -5,8 +5,9 @@
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import type { DraftAccount } from "@/lib/bot/prompts";
+import { normalizeDraft, type DraftAccount } from "@/lib/bot/prompts";
 import { validateAccount, validateTranslation } from "@/lib/bot/validate-account";
+import { addFact, createDossier } from "@/lib/bot/dossier";
 
 const SOURCE = `
 Naval aviators were vectored toward an object detected by the cruiser's radar.
@@ -217,4 +218,200 @@ test("a suspiciously short translation is flagged", () => {
     "fr",
   );
   assert.ok(result.warnings.some((w) => w.rule === "short-translation"));
+});
+
+// ---------------------------------------------------------------------------
+// The dossier-aware checks, added after the first overnight run put four
+// fabricated footage descriptions into the inbox with no warnings at all.
+// ---------------------------------------------------------------------------
+
+test("describing footage nobody has described is an error", () => {
+  const dossier = createDossier("las vegas");
+  addFact(dossier, {
+    kind: "claim",
+    statement: "The uploader says a family saw nonhuman beings.",
+    sources: [{ name: "NewsNation", tier: "press" }],
+  });
+
+  // The real sentence from the NewsNation draft. The video shows figures in a
+  // backyard; this describes the police bodycam footage of a different thing.
+  const result = validateAccount(
+    draft({
+      body_footage:
+        "The footage shows a large, unidentifiable object moving across the sky at night. It is unclear what the object's shape or size is.",
+    }),
+    { dossier },
+  );
+
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => e.rule === "footage-not-established"));
+});
+
+test("saying the footage has not been described passes", () => {
+  const dossier = createDossier("las vegas");
+  const result = validateAccount(
+    draft({
+      body_footage:
+        "The material available does not describe what the footage shows, and the archive has not reviewed it independently.",
+    }),
+    { dossier },
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "footage-not-established"));
+});
+
+test("staying silent about the footage is also an error", () => {
+  // An evasive section reads to a reader as though we simply had nothing to
+  // add, when the useful fact is that nobody has ever described it.
+  const result = validateAccount(
+    draft({ body_footage: "The video was posted online in April." }),
+    { dossier: createDossier("x") },
+  );
+
+  assert.ok(result.errors.some((e) => e.rule === "footage-not-established"));
+});
+
+test("a source that did see it lifts the restriction", () => {
+  const dossier = createDossier("aaro case");
+  addFact(dossier, {
+    kind: "footage",
+    statement:
+      "The resolution report describes an oblong object crossing the sensor field.",
+    sources: [{ name: "AARO", tier: "official" }],
+  });
+
+  const result = validateAccount(
+    draft({
+      body_footage:
+        "The released video shows an oblong object crossing the sensor field from left to right.",
+    }),
+    { dossier },
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "footage-not-established"));
+});
+
+test("a headline lifted from the source video is an error", () => {
+  const result = validateAccount(
+    draft({ headline: "Las Vegas giant creature possible alien video is original" }),
+    {
+      sourceTitle:
+        "Las Vegas 'giant creature' possible 'alien' video is original: Evidence expert | Banfield",
+    },
+  );
+
+  assert.ok(result.errors.some((e) => e.rule === "headline-echoes-source"));
+});
+
+test("our own headline sharing a place name is fine", () => {
+  const result = validateAccount(
+    draft({ headline: "family reports figures in a Las Vegas backyard after a 911 call" }),
+    {
+      sourceTitle:
+        "Las Vegas 'giant creature' possible 'alien' video is original: Evidence expert | Banfield",
+    },
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "headline-echoes-source"));
+});
+
+test("calling a location unknown while naming it is an error", () => {
+  // Both halves are from the same real draft.
+  const result = validateAccount(
+    draft({
+      location_name: "Las Vegas",
+      body_unknown:
+        "The location of the event, the date of the event, and the identity of the object remain unknown.",
+    }),
+  );
+
+  assert.ok(result.errors.some((e) => e.rule === "unknowns-contradict"));
+});
+
+test("a relative date in the prose is flagged for the reader's sake", () => {
+  const result = validateAccount(
+    draft({
+      body_unknown:
+        "The date of the event, established as last year, is not otherwise confirmed anywhere.",
+    }),
+  );
+
+  assert.ok(result.warnings.some((f) => f.rule === "relative-date-in-prose"));
+});
+
+test("naming the place in the same sentence is precision, not contradiction", () => {
+  // "The exact address within Las Vegas is unknown" is a useful sentence and
+  // flagging it would teach the reviewer to ignore this rule.
+  const result = validateAccount(
+    draft({
+      location_name: "Las Vegas",
+      body_unknown:
+        "The exact location within Las Vegas is unknown, and no address has been given by anyone.",
+    }),
+  );
+
+  assert.ok(!result.errors.some((e) => e.rule === "unknowns-contradict"));
+});
+
+// ---------------------------------------------------------------------------
+// normalizeDraft: the schema can enforce a shape but not a meaning, so a model
+// with nothing to report writes the four characters "null" and they arrive as
+// text. The first overnight run produced 25 accounts whose location was the
+// string "null", and it would have rendered as that word on the page.
+// ---------------------------------------------------------------------------
+
+test("the string null becomes an actual null", () => {
+  const result = normalizeDraft(
+    draft({ location_name: "null", country: "null", date_of_event: "null" }),
+  );
+
+  assert.equal(result.location_name, null);
+  assert.equal(result.country, null);
+  assert.equal(result.date_of_event, null);
+  assert.equal(result.date_precision, "unknown", "no date means no precision");
+});
+
+test("other ways of writing nothing are caught too", () => {
+  for (const value of ["", "  ", "none", "N/A", "Unknown", "undefined"]) {
+    assert.equal(
+      normalizeDraft(draft({ location_name: value })).location_name,
+      null,
+      `did not normalise: ${JSON.stringify(value)}`,
+    );
+  }
+});
+
+test("a real place survives untouched", () => {
+  const result = normalizeDraft(draft({ location_name: "Las Vegas", country: "United States" }));
+  assert.equal(result.location_name, "Las Vegas");
+  assert.equal(result.country, "United States");
+});
+
+test("prose in the date column is salvaged to the precision it supports", () => {
+  // A real value from the run: "2024-04 (year only)" in a column the database
+  // expects to parse as a date.
+  const result = normalizeDraft(
+    draft({ date_of_event: "2024-04 (year only)", date_precision: "day" }),
+  );
+  assert.equal(result.date_of_event, "2024-04-01");
+  assert.equal(result.date_precision, "month", "precision drops to what is supported");
+});
+
+test("a bare year becomes the first of January at year precision", () => {
+  const result = normalizeDraft(draft({ date_of_event: "1947", date_precision: "day" }));
+  assert.equal(result.date_of_event, "1947-01-01");
+  assert.equal(result.date_precision, "year");
+});
+
+test("an unsalvageable date is dropped rather than passed on to fail later", () => {
+  const result = normalizeDraft(
+    draft({ date_of_event: "some time in the summer", date_precision: "day" }),
+  );
+  assert.equal(result.date_of_event, null);
+  assert.equal(result.date_precision, "unknown");
+});
+
+test("an invented continent falls back to unknown", () => {
+  assert.equal(normalizeDraft(draft({ continent: "atlantis" })).continent, "unknown");
+  assert.equal(normalizeDraft(draft({ continent: "europe" })).continent, "europe");
 });

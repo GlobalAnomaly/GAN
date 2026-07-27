@@ -21,11 +21,14 @@ import {
   type YouTubeVideo,
 } from "@/lib/bot/youtube";
 import { DEFAULT_MODEL, generateJson, isAvailable } from "@/lib/bot/ollama";
-import { matchKnownEvent, referenceBlock } from "@/lib/bot/known-events";
+import { matchKnownEvent } from "@/lib/bot/known-events";
+import { addKnownEventFacts, dossierFromCandidate } from "@/lib/bot/candidate-dossier";
+import { groundingText } from "@/lib/bot/dossier";
 import { requestStop, startRun, type RunSource } from "@/lib/bot/runner";
 import {
   classifyPrompt,
   draftAccountPrompt,
+  normalizeDraft,
   translatePrompt,
   LANG_NAMES,
   CLASSIFICATION_SCHEMA,
@@ -34,7 +37,6 @@ import {
   type ClassificationResult,
   type DraftAccount,
   type Lang,
-  type SourceMaterial,
   type Translation,
 } from "@/lib/bot/prompts";
 import {
@@ -253,39 +255,31 @@ export async function draftCandidate(
     transcript,
   );
 
-  const source: SourceMaterial = {
-    sourceName: `YouTube: ${candidate.channel}`,
-    sourceUrl: candidate.watch_url,
-    knownTitle: candidate.title,
-    knownDate: candidate.published_at,
-    text: [
-      `Video title: ${candidate.title}`,
-      ``,
-      `Uploader description:`,
-      candidate.description || "(none)",
-      // A transcript changes the account completely: names and dates spoken
-      // aloud stop being unsupported guesses and become quotable material.
-      transcript ? `\nTranscript:\n${transcript}` : "",
-    ].join("\n"),
-    reference: match ? referenceBlock(match) : undefined,
-  };
+  // A transcript changes the account completely: names and dates spoken aloud
+  // stop being unsupported guesses and become quotable material, and on a news
+  // segment it is the only thing that ever describes the footage.
+  const dossier = dossierFromCandidate(candidate, transcript);
+  if (match) addKnownEventFacts(dossier, match);
 
   try {
-    const account = await generateJson<DraftAccount>(
-      draftAccountPrompt(source),
-      { model, temperature: 0.2, schema: DRAFT_SCHEMA },
+    const account = normalizeDraft(
+      await generateJson<DraftAccount>(draftAccountPrompt(dossier), {
+        model,
+        temperature: 0.2,
+        schema: DRAFT_SCHEMA,
+      }),
     );
 
     // Checked before classifying: a draft that breaks a hard rule needs
     // regenerating anyway, and classifying then translating it would spend
     // three more model calls producing output nobody can use.
-    // The grounding check must see the reference too, or the very facts we
-    // deliberately supplied would be flagged as invented.
-    const groundingText = [source.text, source.reference]
-      .filter(Boolean)
-      .join("\n\n");
+    const grounding = groundingText(dossier);
 
-    const firstCheck = validateAccount(account, { sourceText: groundingText });
+    const firstCheck = validateAccount(account, {
+      sourceText: grounding,
+      dossier,
+      sourceTitle: candidate.title,
+    });
 
     let classification: ClassificationResult | null = null;
     let validation = firstCheck;
@@ -294,12 +288,14 @@ export async function draftCandidate(
 
     if (firstCheck.ok) {
       classification = await generateJson<ClassificationResult>(
-        classifyPrompt(account, source),
+        classifyPrompt(account, dossier),
         { model, temperature: 0.1, schema: CLASSIFICATION_SCHEMA },
       );
 
       validation = validateAccount(account, {
-        sourceText: groundingText,
+        sourceText: grounding,
+        dossier,
+        sourceTitle: candidate.title,
         classification: classification.classification,
       });
 

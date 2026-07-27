@@ -28,12 +28,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { addCandidates, listCandidates, updateCandidate } from "@/lib/admin/store";
-import { matchKnownEvent, referenceBlock } from "@/lib/bot/known-events";
+import { matchKnownEvent } from "@/lib/bot/known-events";
 import { normalizeUrl } from "@/lib/bot/normalize-url";
 import { generateJson, isAvailable } from "@/lib/bot/ollama";
 import {
   classifyPrompt,
   draftAccountPrompt,
+  normalizeDraft,
   translatePrompt,
   CLASSIFICATION_SCHEMA,
   DRAFT_SCHEMA,
@@ -42,10 +43,11 @@ import {
   type ClassificationResult,
   type DraftAccount,
   type Lang,
-  type SourceMaterial,
   type Translation,
 } from "@/lib/bot/prompts";
 import { validateAccount, validateTranslation } from "@/lib/bot/validate-account";
+import { addKnownEventFacts, dossierFromCandidate } from "@/lib/bot/candidate-dossier";
+import { groundingText } from "@/lib/bot/dossier";
 import {
   QuotaTracker,
   getVideoDetails,
@@ -397,24 +399,26 @@ class Run {
 
     const match = matchKnownEvent(candidate.title, candidate.description);
 
-    const source: SourceMaterial = {
-      sourceName: `YouTube: ${candidate.channel}`,
-      sourceUrl: candidate.watch_url,
-      knownTitle: candidate.title,
-      knownDate: candidate.published_at,
-      text: `Video title: ${candidate.title}\n\nUploader description:\n${candidate.description || "(none)"}`,
-      reference: match ? referenceBlock(match) : undefined,
-    };
+    // The writer sees this and nothing else. No raw metadata, no ability to
+    // look anything up. See dossier.ts for why that is the whole fix.
+    const dossier = dossierFromCandidate(candidate);
+    if (match) addKnownEventFacts(dossier, match);
 
-    const groundingText = [source.text, source.reference].filter(Boolean).join("\n\n");
+    const grounding = groundingText(dossier);
 
-    const account = await generateJson<DraftAccount>(draftAccountPrompt(source), {
-      model: config.model,
-      temperature: 0.2,
-      schema: DRAFT_SCHEMA,
+    const account = normalizeDraft(
+      await generateJson<DraftAccount>(draftAccountPrompt(dossier), {
+        model: config.model,
+        temperature: 0.2,
+        schema: DRAFT_SCHEMA,
+      }),
+    );
+
+    const firstCheck = validateAccount(account, {
+      sourceText: grounding,
+      dossier,
+      sourceTitle: candidate.title,
     });
-
-    const firstCheck = validateAccount(account, { sourceText: groundingText });
 
     let classification: ClassificationResult | null = null;
     let validation = firstCheck;
@@ -426,12 +430,14 @@ class Run {
     // Over a night that saves hours.
     if (firstCheck.ok) {
       classification = await generateJson<ClassificationResult>(
-        classifyPrompt(account, source),
+        classifyPrompt(account, dossier),
         { model: config.model, temperature: 0.1, schema: CLASSIFICATION_SCHEMA },
       );
 
       validation = validateAccount(account, {
-        sourceText: groundingText,
+        sourceText: grounding,
+        dossier,
+        sourceTitle: candidate.title,
         classification: classification.classification,
       });
 

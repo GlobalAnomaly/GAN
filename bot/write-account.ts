@@ -29,6 +29,7 @@ import { DEFAULT_MODEL, generateJson, isAvailable, listModels } from "@/lib/bot/
 import {
   classifyPrompt,
   draftAccountPrompt,
+  normalizeDraft,
   translatePrompt,
   LANG_NAMES,
   type ClassificationResult,
@@ -37,6 +38,7 @@ import {
   type SourceMaterial,
   type Translation,
 } from "@/lib/bot/prompts";
+import { dossierFromDocument, groundingText } from "@/lib/bot/dossier";
 import {
   formatFindings,
   validateAccount,
@@ -181,12 +183,25 @@ async function main() {
     );
   }
 
+  // The writer only ever sees a dossier. A source handed over on the command
+  // line is a deliberate choice by a person, so its text counts as reporting
+  // rather than as an uploader's pitch. The tier is stated here rather than
+  // assumed silently, because it decides whether this document is allowed to
+  // establish what any footage shows.
+  const dossier = dossierFromDocument(
+    { name: source.sourceName, url: source.sourceUrl, tier: "press" },
+    [source.text, source.reference].filter(Boolean).join("\n\n"),
+    { subject: source.knownTitle ?? source.sourceName },
+  );
+
   // Stage 1: draft
   console.log("1/4  Drafting the English account");
-  const account = await generateJson<DraftAccount>(draftAccountPrompt(source), {
-    model: args.model,
-    temperature: 0.2,
-  });
+  const account = normalizeDraft(
+    await generateJson<DraftAccount>(draftAccountPrompt(dossier), {
+      model: args.model,
+      temperature: 0.2,
+    }),
+  );
 
   // Stage 2: validate the draft.
   //
@@ -195,7 +210,10 @@ async function main() {
   // translating it would burn three more model calls to produce output nobody
   // can use. Across a backfill of thousands that is hours of GPU time.
   console.log("2/4  Checking it against the house rules");
-  const draftCheck = validateAccount(account, { sourceText: source.text });
+  const draftCheck = validateAccount(account, {
+    sourceText: groundingText(dossier),
+    dossier,
+  });
 
   if (!draftCheck.ok) {
     console.log(`\n${"-".repeat(70)}`);
@@ -243,12 +261,13 @@ async function main() {
   // Stage 3: classify
   console.log("3/4  Classifying against the rubric");
   const classification = await generateJson<ClassificationResult>(
-    classifyPrompt(account, source),
+    classifyPrompt(account, dossier),
     { model: args.model, temperature: 0.1 },
   );
 
   const finalCheck = validateAccount(account, {
-    sourceText: source.text,
+    sourceText: groundingText(dossier),
+    dossier,
     classification: classification.classification,
   });
 
