@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The overnight run.
  *
  * Press start, go to bed, wake up to a full review queue. This is the mode the

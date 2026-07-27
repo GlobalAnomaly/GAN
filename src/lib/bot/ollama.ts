@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Ollama client. Runs the model locally on your GPU, so drafting costs nothing
  * per case and the archive can be backfilled without a per-token bill.
  *

@@ -23,6 +23,21 @@ These are editorial, not stylistic, and they are why the site is worth building:
 - **Never invent a detail that is not in the source.** Shape, material, size,
   altitude, time of day, witness count, location. If it is absent, it belongs in
   "what remains unknown", which is why that is its own database column.
+- **An empty field is a correct answer.** An entry with no date, no place and a
+  classification of `unverified` is a complete and honest entry, not a failed
+  one. Most anonymous clips end there and that is the accurate result. A field
+  filled from nowhere is a defect, and it is a worse one than a blank, because a
+  blank tells the reader we do not know while a fabrication tells them we do.
+- **A video's title and description are not a description of its footage.** They
+  are the uploader's claims about it, frequently written to sell the clip. What
+  the footage shows can only come from watching it, from a transcript, or from a
+  source that describes it. Absent all three, we do not know, and the account
+  says so.
+- **If a ten-second search beats the page, the page is not finished.** The whole
+  argument for this archive is that a written, cross-checked, attributed account
+  is worth more than a database row. An account thinner than a search result
+  fails that argument, and the answer is never to write more confidently, it is
+  to go and find the sources.
 - **Neutral cuts both ways.** Leaning skeptic is as much a bias as leaning
   believer. "No one has explained this" is the accurate sentence, and it is
   allowed to stand on its own.

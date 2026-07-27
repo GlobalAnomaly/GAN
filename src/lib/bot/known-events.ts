@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The reference of well-documented events.
  *
  * This exists to fix a specific failure: a documentary about Roswell that
@@ -267,10 +267,10 @@ export const KNOWN_EVENTS: KnownEvent[] = [
     date: "1977-08-01",
     date_precision: "month",
     date_note: "over several months from August 1977",
-    location_name: "Colares, ParÃ¡",
+    location_name: "Colares, Pará",
     country: "Brazil",
     continent: "south_america",
-    authority: "Brazilian Air Force files released as OperaÃ§Ã£o Prato",
+    authority: "Brazilian Air Force files released as Operação Prato",
   },
   {
     id: "rendlesham",
@@ -327,7 +327,7 @@ export const KNOWN_EVENTS: KnownEvent[] = [
     location_name: "Hessdalen valley",
     country: "Norway",
     continent: "europe",
-    authority: "Project Hessdalen, Ã˜stfold University College",
+    authority: "Project Hessdalen, Østfold University College",
   },
   {
     id: "jal-1628",
@@ -477,7 +477,7 @@ export interface EventMatch {
 function normalize(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[â€™']/g, "'")
+    .replace(/[\u2019']/g, "'")
     .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
     .replace(/\s+/g, " ");
 }

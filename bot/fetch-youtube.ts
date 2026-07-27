@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Fetch video candidates from YouTube and write them to a review file.
  *
  * This is the step that answers "where do ten thousand video URLs come from".

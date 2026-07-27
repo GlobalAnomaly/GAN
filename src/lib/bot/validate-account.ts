@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The house-style and grounding validator.
  *
  * A local 8B model will break the editorial rules sometimes. Catching that by
@@ -150,8 +150,8 @@ const NUMBER_WORDS = [
 function normalize(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[â€˜â€™]/g, "'")
-    .replace(/[â€œâ€]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
     .replace(/[^\p{L}\p{N}\s'"-]/gu, " ")
     .replace(/\s+/g, " ");
 }
@@ -175,7 +175,7 @@ function checkEmDashes(account: DraftAccount, findings: Finding[]) {
   for (const [field, value] of Object.entries(account)) {
     if (typeof value !== "string") continue;
     // En dash counts too: it is the same tell and reads as the same habit.
-    const match = /[â€”â€“]/.exec(value);
+    const match = /[\u2014\u2013]/.exec(value);
     if (match) {
       const at = match.index;
       findings.push({
@@ -486,7 +486,7 @@ export function validateTranslation(
 
   for (const [field, value] of Object.entries(translated)) {
     if (typeof value !== "string") continue;
-    if (/[â€”â€“]/.test(value)) {
+    if (/[\u2014\u2013]/.test(value)) {
       findings.push({
         severity: "error",
         rule: "no-em-dash",

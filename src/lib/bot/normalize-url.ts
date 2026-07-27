@@ -1,4 +1,4 @@
-﻿/**
+/**
  * URL normalization: the keystone of the ingestion memory.
  *
  * The same video reaches us through many different links. A share link, a

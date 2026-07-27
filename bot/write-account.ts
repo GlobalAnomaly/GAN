@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Draft a case account from source material, using the local model.
  *
  * Runs in stages, because an 8B model holds together far better doing one

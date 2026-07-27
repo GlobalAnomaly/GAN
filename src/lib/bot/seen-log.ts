@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The ingestion memory, file-backed for now.
  *
  * Records every URL the bot has ever encountered, including the ones you

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Push the hand-entered seed content into Supabase.
  *
  * Idempotent: cases and science entries are matched on their slug, and child

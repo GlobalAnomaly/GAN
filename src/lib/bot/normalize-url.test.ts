@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The dedup logic is what stops the review inbox filling with the same clip
  * five times, so it gets tested. Run with: npm run bot:test
  */

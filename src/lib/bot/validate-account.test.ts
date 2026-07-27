@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The validator is what stands between an 8B model and the review inbox, so
  * its rules get tested. Run with: npm run bot:test
  */
@@ -50,7 +50,7 @@ test("a clean account passes", () => {
 
 test("em dashes are an error, wherever they appear", () => {
   const result = validateAccount(
-    draft({ body_status: "The Pentagon released it â€” and confirmed it." }),
+    draft({ body_status: "The Pentagon released it \u2014 and confirmed it." }),
     { sourceText: SOURCE },
   );
   assert.equal(result.ok, false);
@@ -59,7 +59,7 @@ test("em dashes are an error, wherever they appear", () => {
 
 test("en dashes are caught too", () => {
   const result = validateAccount(
-    draft({ summary: "Aviators were sent out â€“ radar had tracked it." }),
+    draft({ summary: "Aviators were sent out \u2013 radar had tracked it." }),
     { sourceText: SOURCE },
   );
   assert.ok(result.errors.some((e) => e.rule === "no-em-dash"));
