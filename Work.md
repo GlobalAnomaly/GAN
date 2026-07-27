@@ -1,10 +1,196 @@
 # Work log
 
+**Session 3: in progress, 27 July 2026**
 **Session 2 ended: 27 July 2026, 13:28 (UTC+02:00)**
 **Session 1 ended: 26 July 2026, 08:47 (UTC+02:00)**
 
-Read this first in a new session. Session 2's summary is immediately below;
-session 1's state and the detailed session 2 notes follow it.
+Read this first in a new session. Session 3 is immediately below, then
+session 2's summary, then session 1's state and the detailed session 2 notes.
+
+---
+
+# Session 3: reviewing the first overnight run
+
+Started from the operator's review of the 122 drafts, which found the drafting
+stage inventing what footage showed. Three commits so far.
+
+## The encoding bug, which had disabled the em dash rule from the start
+
+Something rewrote the `bot/` tree as Windows-1252 instead of UTF-8, turning
+every multi-byte character into two or three latin-1 ones. The em dash in
+`validate-account.ts` became three junk characters, so the most repeated rule in
+the project was matching the wrong set.
+
+**It failed in both directions at once.** Two drafts carrying real en dashes
+passed with zero errors. The Rendlesham interview with Jim Penniston was
+*blocked* for a dash it does not contain, because curly double quotes had landed
+in the corrupted character class, costing a good candidate its classification
+and translation.
+
+**The tests could not catch it**: the same pass corrupted the fixtures, so the
+broken check agreed with the broken data and the suite stayed green.
+`known-events.ts` was damaged too, which matters more, since the runner hands
+that file to the model as verified fact: `Pará`, `Operação Prato` and `Østfold
+University College` were all mangled and would have published that way.
+
+Dashes and curly quotes are now stored as `\u` escapes, so the files whose job
+is to detect those characters contain none of them. `encoding.test.ts` scans the
+tree for the corruption signature rather than testing behaviour, because
+behaviour tests get damaged alongside the code they cover. It immediately caught
+an occurrence the manual scan had missed.
+
+## The real finding: nothing described the footage, so the model invented it
+
+All four Las Vegas 2023 drafts fabricated their footage section. The NewsNation
+account said "a large, unidentifiable object moving across the sky at night"
+when the video shows figures in a backyard, having merged in the police bodycam
+footage of a different thing. **Across all 397 candidates, zero carry anything
+describing what their footage shows.** So every drafted footage section was
+invented, and the validator was structurally blind to it: `grounding-number` and
+`grounding-name` test numbers and proper nouns, and "a large object moving
+across the sky" contains neither.
+
+**The dossier is the fix, and it is a change to what the writer receives rather
+than to how it is instructed.** `src/lib/bot/dossier.ts`. A list of facts, each
+carrying the sources that asserted it, and the drafting stage now sees that and
+nothing else. Source tier decides what a source can establish: an uploader or
+anonymous account produces claims and can never fill "what the footage shows".
+That rule lives in data now instead of in a prompt an 8B model forgets.
+
+Rechecking the run: 119 of 122 drafts passed the old validator clean, and
+**121 are caught now.**
+
+| rule | drafts |
+|---|---|
+| `footage-not-established` | 121 |
+| `unknowns-contradict` | 77 |
+| `headline-echoes-source` | 15 |
+
+Also fixed a live bug the new checks exposed. Every field in `DRAFT_SCHEMA` is
+declared a string, so a model with nothing to report writes the four characters
+`null` and they arrive as text: **25 accounts had that as their location**, 27
+as their country, 24 as their date, and one carried `"2024-04 (year only)"` in a
+column the database parses as a date. `normalizeDraft` coerces them.
+
+Dates are computed in code now (`relative-dates.ts`). "It's been one year since"
+against a publication date is arithmetic, and small models are bad at it.
+Precision degrades honestly, so a rounded phrase yields a year and never a day.
+
+## AARO, the first source that describes its own footage
+
+`src/lib/bot/aaro.ts`. The overnight config had "aaro press briefing" as a
+*YouTube search*, because `RunSource` can only express YouTube. YouTube fuzzy
+matched AARO into Aaron and returned 50 videos about Aaron Rodgers, De'Aaron Fox
+and Aaron Rai's PGA press conference. A tooling gap producing an operator error.
+
+**Every AARO video carries a government-written accessibility label** of the
+form "Silent 13 second video showing a distant unified aerial object moving
+steadily across the sky, No audio." That is a description of what is visible
+from a source that had the file, and it is what a YouTube title can never be.
+
+32 cases, 64 videos, 9 resolution PDFs. All 32 have a footage description. 26
+carry a date once the narrative is read as well as the title. **Plain HTTP is
+enough**, no browser, though the site 403s some user agents so nothing sets one.
+
+AARO's verdict stays AARO's: "Resolved as a Balloon", "Resolved as Migratory
+Birds", "Closed as Not Anomalous" enter as their stated finding for the
+classifier to weigh, never copied as ours.
+
+Drafting Mt. Etna live produced a clean account citing AARO's moderate
+confidence balloon assessment, classified `likely_explained`. It also exposed
+two defects, both fixed: `unknowns-contradict` fired falsely on precision (month
+precision plus "the exact date is not published" are both true), and the model
+copied the dossier's own bracket annotations into the prose, which is now the
+`scaffolding-leak` rule.
+
+**Not wired into the runner yet.** `RunSource` has no `aaro` type and
+`Candidate.media_type` is `youtube | short`. `types.ts` already carries
+`gov_file`, `video_file`, `poster_url` and `is_self_hosted`, so the site side is
+ready.
+
+## Decision: the unreviewed shelf, and reader voting
+
+**Operator's proposal, 27 July 2026.** Homemade clips that nobody can verify get
+their own section where readers vote on what they think the footage is, later
+gated to membership. Items leave that section when real analysis arrives, moving
+to `unverified` with expert support, or `debunked`.
+
+**It is a field, not a section.** What this identifies is a fourth axis the
+archive was missing, orthogonal to the existing three: **how much scrutiny has
+this had?** Nobody has looked / named experts have examined it / an official
+body has examined it. Modelled as a field, the section is a *view* and promotion
+is a field change, so the URL stays stable and keeps its history and ranking.
+Modelled as a separate content type, promotion means moving rows between tables
+and either breaking the URL or carrying a redirect forever.
+
+**The five options, and why the wording was changed.** An early draft used
+"True", which modified *the footage* and so collided with the others: authentic
+video of a balloon is both "true" and "man-made", and two readers who agree
+exactly would press different buttons. "Real UFO" modifies *the thing*, which
+makes the set mutually exclusive.
+
+| icon | option |
+|---|---|
+| 👍 | Real UFO |
+| 👎 | Fake |
+| ☁ | Natural phenomenon |
+| ✈ | Man-made object |
+| ? | Unclear |
+
+These map almost exactly onto AARO's own dispositions, which makes reader votes
+and official findings directly comparable.
+
+**Rules that must hold, in the order they would hurt:**
+
+1. **A vote never touches the classification.** A tally measures what readers
+   believe, not what happened. The moment "78% say real" sits beside a
+   classification badge, the badge borrows credibility from the poll, and the
+   entire differentiator is that credibility comes from specifics and never from
+   assertion. Vote counts never appear on a page carrying a real classification.
+2. **Freeze the tally at promotion.** The valuable finding is "readers called
+   this genuine, the analysis found a balloon". Votes accruing after the answer
+   is published are cast by people who know it. Snapshot at promotion and store
+   the two separately. Free now, impossible to reconstruct later.
+3. **Record the vote against the version of the page.** A rewritten account is a
+   different question from the one earlier voters answered.
+4. **Point the question at the footage, never the person.** If the uploader is
+   identifiable, a public "fake" tally is an accusation of fraud against a named
+   individual. Never render anything of the form "X% think this person is lying".
+5. **URLs yes, sitemap no**, until an item carries real content or is promoted.
+   Sharing works and Google is not handed thousands of thin pages, which is the
+   same reasoning that gave translations and map pins no URL.
+
+**Two consequences that make this cheaper than it looks.**
+
+*These items do not need the four-section editorial account.* For an anonymous
+clip four of those sections are empty by design. A light template (what is in
+the frame if anyone described it, who posted it, when, and the open questions)
+costs a fraction of the model time and is more honest than an account padded to
+resemble the archive's. That also makes the 255 candidates left undrafted by the
+`--max-drafts` ceiling viable.
+
+*The cross-reference engine is what drains the section.* "If we find the same
+videos elsewhere" is clustering. The unreviewed shelf is an intake queue, and
+the matcher promotes items out of it when they cluster with a case carrying
+expert analysis or an official disposition.
+
+**One idea to build it on, using material already fetched.** We hold 32 AARO
+cases where the government has published the answer. Show the footage and the
+description without the disposition, let readers vote, then reveal what AARO
+concluded. That gives the section a calibration baseline: not only what readers
+think but how often they are right, and about what. Nobody in this field has
+that number, and it is the honest way to open the section, since it starts by
+demonstrating how hard the judgement is.
+
+**Sequencing.** Voting needs accounts, and `AGENTS.md` requires the legal pages
+rewritten and lawyer-reviewed before `accounts_on` flips, so the vote lands
+after the consent layer and the legal rewrite (items 12 and 13). The field, the
+view and the light template can all be built well before that, with voting dark.
+
+**"Expert" needs a definition or it becomes a loophole:** a named person with
+relevant credentials whose analysis is published and citable. Not "a UFO
+investigator said so". `acknowledged` still requires an official body, which the
+validator already enforces.
 
 ---
 
