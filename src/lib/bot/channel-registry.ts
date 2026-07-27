@@ -73,6 +73,10 @@ const PRESS_PATTERNS: RegExp[] = [
   /\b\d{1,2}\s*(news|on your side|eyewitness news|action news)\b/i,
   /\b(reuters|associated press|the guardian|new york times|washington post|le monde|el pais|folha)\b/i,
   /\b(newsnation|newsweek|npr news|euronews|france 24|al jazeera)\b/i,
+  // Major broadcasters carrying no call sign or channel number. The pattern
+  // above requires a digit, so "BBC" and "Sky News" fell through to uploader
+  // and a BBC Roswell documentary ranked near the bottom of the draft queue.
+  /\b(bbc|itv news|sky news|channel 4 news|pbs newshour|cbc news|abc news|nbc news|cbs news|dw news)\b/i,
 ];
 
 const OFFICIAL_PATTERNS: RegExp[] = [
